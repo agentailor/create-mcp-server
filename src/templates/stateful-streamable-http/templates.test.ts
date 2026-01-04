@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { getServerTemplate, getIndexTemplate, getReadmeTemplate } from './index.js';
 
-describe('streamable-http templates', () => {
+describe('stateful-streamable-http templates', () => {
   const projectName = 'test-project';
 
   describe('getServerTemplate', () => {
@@ -59,15 +59,39 @@ describe('streamable-http templates', () => {
       expect(template).toContain('process.env.PORT || 3000');
     });
 
-    // Stateless-specific tests
-    it('should use undefined sessionIdGenerator for stateless mode', () => {
+    // Stateful-specific tests
+    it('should use session ID header', () => {
       const template = getIndexTemplate();
-      expect(template).toContain('sessionIdGenerator: undefined');
+      expect(template).toContain('mcp-session-id');
     });
 
-    it('should return 405 for GET requests', () => {
+    it('should store transports by session ID', () => {
       const template = getIndexTemplate();
-      expect(template).toContain('res.writeHead(405)');
+      expect(template).toContain('const transports');
+      expect(template).toContain('transports[sessionId]');
+    });
+
+    it('should use isInitializeRequest for new sessions', () => {
+      const template = getIndexTemplate();
+      expect(template).toContain('isInitializeRequest');
+    });
+
+    it('should generate session IDs with randomUUID', () => {
+      const template = getIndexTemplate();
+      expect(template).toContain('randomUUID');
+      expect(template).toContain('sessionIdGenerator');
+    });
+
+    it('should handle session cleanup on close', () => {
+      const template = getIndexTemplate();
+      expect(template).toContain('transport.onclose');
+      expect(template).toContain('delete transports[sid]');
+    });
+
+    it('should close all transports on SIGINT', () => {
+      const template = getIndexTemplate();
+      expect(template).toContain("process.on('SIGINT'");
+      expect(template).toContain('transports[sessionId].close()');
     });
   });
 
@@ -88,9 +112,22 @@ describe('streamable-http templates', () => {
       expect(template).toContain('/mcp');
     });
 
-    it('should describe stateless behavior', () => {
+    // Stateful-specific documentation tests
+    it('should document session management', () => {
       const template = getReadmeTemplate(projectName);
-      expect(template).toContain('stateless');
+      expect(template).toContain('mcp-session-id');
+      expect(template).toContain('Session');
+    });
+
+    it('should document SSE stream support', () => {
+      const template = getReadmeTemplate(projectName);
+      expect(template).toContain('GET /mcp');
+      expect(template).toContain('SSE');
+    });
+
+    it('should document session termination', () => {
+      const template = getReadmeTemplate(projectName);
+      expect(template).toContain('DELETE /mcp');
     });
   });
 });

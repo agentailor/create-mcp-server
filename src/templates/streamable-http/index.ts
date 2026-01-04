@@ -1,9 +1,10 @@
 export function getIndexTemplate(): string {
-  return `import express, { type Request, type Response } from 'express';
+  return `import { type Request, type Response } from 'express';
+import { createMcpExpressApp } from '@modelcontextprotocol/sdk/server/express.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { getServer } from './server.js';
 
-const app = express();
+const app = createMcpExpressApp();
 
 app.post('/mcp', async (req: Request, res: Response) => {
   const server = getServer();
@@ -78,3 +79,6 @@ process.on('SIGINT', async () => {
 });
 `;
 }
+
+export { getServerTemplate } from './server.js';
+export { getReadmeTemplate } from './readme.js';

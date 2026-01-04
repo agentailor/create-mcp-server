@@ -3,15 +3,43 @@
 import prompts from 'prompts';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { getServerTemplate } from './templates/streamable-http/server.js';
-import { getIndexTemplate } from './templates/streamable-http/index.js';
-import { getPackageJsonTemplate } from './templates/streamable-http/package.json.js';
-import { getTsconfigTemplate } from './templates/streamable-http/tsconfig.json.js';
-import { getGitignoreTemplate } from './templates/streamable-http/gitignore.js';
-import { getEnvExampleTemplate } from './templates/streamable-http/env.example.js';
-import { getReadmeTemplate } from './templates/streamable-http/readme.js';
+import { getPackageJsonTemplate } from './templates/common/package.json.js';
+import { getTsconfigTemplate } from './templates/common/tsconfig.json.js';
+import { getGitignoreTemplate } from './templates/common/gitignore.js';
+import { getEnvExampleTemplate } from './templates/common/env.example.js';
+import {
+  getServerTemplate as getStatelessServerTemplate,
+  getIndexTemplate as getStatelessIndexTemplate,
+  getReadmeTemplate as getStatelessReadmeTemplate,
+} from './templates/streamable-http/index.js';
+import {
+  getServerTemplate as getStatefulServerTemplate,
+  getIndexTemplate as getStatefulIndexTemplate,
+  getReadmeTemplate as getStatefulReadmeTemplate,
+} from './templates/stateful-streamable-http/index.js';
 
+type TemplateType = 'stateless' | 'stateful';
 type PackageManager = 'npm' | 'pnpm' | 'yarn';
+
+const templateFunctions: Record<
+  TemplateType,
+  {
+    getServerTemplate: (projectName: string) => string;
+    getIndexTemplate: () => string;
+    getReadmeTemplate: (projectName: string) => string;
+  }
+> = {
+  stateless: {
+    getServerTemplate: getStatelessServerTemplate,
+    getIndexTemplate: getStatelessIndexTemplate,
+    getReadmeTemplate: getStatelessReadmeTemplate,
+  },
+  stateful: {
+    getServerTemplate: getStatefulServerTemplate,
+    getIndexTemplate: getStatefulIndexTemplate,
+    getReadmeTemplate: getStatefulReadmeTemplate,
+  },
+};
 
 const packageManagerCommands: Record<PackageManager, { install: string; dev: string }> = {
   npm: { install: 'npm install', dev: 'npm run dev' },
@@ -68,6 +96,27 @@ async function main() {
 
   const packageManager: PackageManager = packageManagerResponse.packageManager || 'npm';
 
+  const templateTypeResponse = await prompts(
+    {
+      type: 'select',
+      name: 'templateType',
+      message: 'Template type:',
+      choices: [
+        { title: 'Stateless', value: 'stateless', description: 'Simple stateless HTTP server' },
+        {
+          title: 'Stateful',
+          value: 'stateful',
+          description: 'Session-based server with SSE support',
+        },
+      ],
+      initial: 0,
+    },
+    { onCancel }
+  );
+
+  const templateType: TemplateType = templateTypeResponse.templateType || 'stateless';
+  const templates = templateFunctions[templateType];
+
   const projectPath = join(process.cwd(), projectName);
   const srcPath = join(projectPath, 'src');
 
@@ -77,13 +126,13 @@ async function main() {
 
     // Write all template files
     await Promise.all([
-      writeFile(join(srcPath, 'server.ts'), getServerTemplate(projectName)),
-      writeFile(join(srcPath, 'index.ts'), getIndexTemplate()),
+      writeFile(join(srcPath, 'server.ts'), templates.getServerTemplate(projectName)),
+      writeFile(join(srcPath, 'index.ts'), templates.getIndexTemplate()),
       writeFile(join(projectPath, 'package.json'), getPackageJsonTemplate(projectName)),
       writeFile(join(projectPath, 'tsconfig.json'), getTsconfigTemplate()),
       writeFile(join(projectPath, '.gitignore'), getGitignoreTemplate()),
       writeFile(join(projectPath, '.env.example'), getEnvExampleTemplate()),
-      writeFile(join(projectPath, 'README.md'), getReadmeTemplate(projectName)),
+      writeFile(join(projectPath, 'README.md'), templates.getReadmeTemplate(projectName)),
     ]);
 
     const commands = packageManagerCommands[packageManager];

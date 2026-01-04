@@ -9,14 +9,22 @@ create-mcp-server/
 ├── src/
 │   ├── index.ts                    # CLI entry point
 │   └── templates/
-│       └── streamable-http/        # Stateless streamable HTTP template
-│           ├── server.ts           # MCP server definition template
-│           ├── index.ts            # Entry point template
-│           ├── package.json.ts     # package.json template
-│           ├── tsconfig.json.ts    # tsconfig.json template
-│           ├── gitignore.ts        # .gitignore template
-│           ├── env.example.ts      # .env.example template
-│           └── readme.ts           # README.md template
+│       ├── common/                 # Shared template files
+│       │   ├── package.json.ts     # package.json template
+│       │   ├── tsconfig.json.ts    # tsconfig.json template
+│       │   ├── gitignore.ts        # .gitignore template
+│       │   ├── env.example.ts      # .env.example template
+│       │   └── templates.test.ts   # Tests for common templates
+│       ├── streamable-http/        # Stateless streamable HTTP template
+│       │   ├── server.ts           # MCP server definition template
+│       │   ├── index.ts            # Barrel export + getIndexTemplate
+│       │   ├── readme.ts           # README.md template
+│       │   └── templates.test.ts   # Tests for stateless template
+│       └── stateful-streamable-http/  # Stateful streamable HTTP template
+│           ├── server.ts           # Re-exports from streamable-http
+│           ├── index.ts            # Barrel export + getIndexTemplate
+│           ├── readme.ts           # README.md template
+│           └── templates.test.ts   # Tests for stateful template
 ├── dist/                           # Compiled output (generated)
 ├── official-examples/              # Reference MCP server examples
 ├── package.json
@@ -57,18 +65,32 @@ npm publish --access public
 
 ## Templates
 
-### streamable-http (default)
+### streamable-http (stateless, default)
 
-A stateless streamable HTTP MCP server based on the official example. Includes:
+A stateless streamable HTTP MCP server. Each request creates a new transport and server instance.
 
+Features:
 - Express.js with `StreamableHTTPServerTransport`
+- No session management (new transport per request)
 - Example prompt (`greeting-template`)
 - Example tool (`start-notification-stream`)
 - Example resource (`greeting-resource`)
 - TypeScript configuration
 - Environment variable support for PORT
 
-Generated project structure:
+### stateful-streamable-http
+
+A stateful streamable HTTP MCP server with session management.
+
+Features:
+- Session tracking via `mcp-session-id` header
+- Transport reuse across requests within a session
+- SSE stream support (GET /mcp)
+- Session termination (DELETE /mcp)
+- Same example prompt, tool, and resource as stateless
+- Graceful shutdown with transport cleanup
+
+Generated project structure (same for both templates):
 ```
 {project-name}/
 ├── src/
@@ -83,5 +105,4 @@ Generated project structure:
 
 ## Future Enhancements
 
-- Template selection (stateless/stateful MCP server)
 - Git initialization option
