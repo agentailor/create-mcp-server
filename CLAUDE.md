@@ -85,4 +85,3 @@ Generated project structure:
 
 - Template selection (stateless/stateful MCP server)
 - Git initialization option
-- Additional templates (stdio, SSE)
