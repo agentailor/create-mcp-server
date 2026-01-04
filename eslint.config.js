@@ -7,6 +7,6 @@ export default tseslint.config(
   ...tseslint.configs.recommended,
   eslintConfigPrettier,
   {
-    ignores: ['dist/', 'node_modules/', 'official-examples/'],
+    ignores: ['dist/', 'node_modules/', 'official-examples/', 'generated/'],
   }
 );

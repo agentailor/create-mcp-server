@@ -5,3 +5,5 @@ dist/
 .claude/
 
 official-examples/*
+generated/
+.vscode/mcp.json
