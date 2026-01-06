@@ -3,6 +3,7 @@
 import prompts from 'prompts';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { execSync } from 'node:child_process';
 import { getPackageJsonTemplate } from './templates/common/package.json.js';
 import { getTsconfigTemplate } from './templates/common/tsconfig.json.js';
 import { getGitignoreTemplate } from './templates/common/gitignore.js';
@@ -135,6 +136,18 @@ async function main() {
     withOAuth = oauthResponse.withOAuth ?? false;
   }
 
+  // Git init prompt
+  const gitInitResponse = await prompts(
+    {
+      type: 'confirm',
+      name: 'withGitInit',
+      message: 'Initialize git repository?',
+      initial: true,
+    },
+    { onCancel }
+  );
+  const withGitInit = gitInitResponse.withGitInit ?? false;
+
   const templateOptions: TemplateOptions = { withOAuth };
   const templates = templateFunctions[templateType];
 
@@ -169,6 +182,15 @@ async function main() {
 
     // Write all template files
     await Promise.all(filesToWrite);
+
+    // Initialize git repository if requested
+    if (withGitInit) {
+      try {
+        execSync('git init', { cwd: projectPath, stdio: 'ignore' });
+      } catch {
+        console.log('\n⚠️  Could not initialize git repository (is git installed?)');
+      }
+    }
 
     const commands = packageManagerCommands[packageManager];
 
