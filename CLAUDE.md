@@ -119,6 +119,3 @@ Generated project structure (same for both templates, +auth.ts when OAuth enable
 └── README.md
 ```
 
-## Future Enhancements
-
-- Git initialization option
