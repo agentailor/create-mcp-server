@@ -1,4 +1,10 @@
-export function getIndexTemplate(): string {
+export interface TemplateOptions {
+  withOAuth?: boolean;
+}
+
+// Options parameter added for type consistency with stateful template (OAuth not supported in stateless)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function getIndexTemplate(options?: TemplateOptions): string {
   return `import { type Request, type Response } from 'express';
 import { createMcpExpressApp } from '@modelcontextprotocol/sdk/server/express.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';

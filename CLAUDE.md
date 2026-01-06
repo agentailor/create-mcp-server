@@ -24,8 +24,11 @@ create-mcp-server/
 │           ├── server.ts           # Re-exports from streamable-http
 │           ├── index.ts            # Barrel export + getIndexTemplate
 │           ├── readme.ts           # README.md template
+│           ├── auth.ts             # OAuth authentication template
 │           └── templates.test.ts   # Tests for stateful template
 ├── dist/                           # Compiled output (generated)
+├── docs/
+│   └── oauth-setup.md              # OAuth setup guide for various providers
 ├── official-examples/              # Reference MCP server examples
 ├── package.json
 ├── tsconfig.json
@@ -89,13 +92,26 @@ Features:
 - Session termination (DELETE /mcp)
 - Same example prompt, tool, and resource as stateless
 - Graceful shutdown with transport cleanup
+- **Optional OAuth authentication** (enabled via CLI prompt)
 
-Generated project structure (same for both templates):
+#### OAuth Option
+
+When OAuth is enabled for the stateful template:
+- Generates `src/auth.ts` with JWKS/JWT-based OAuth middleware
+- Uses any OIDC-compliant provider (Auth0, Keycloak, Azure AD, Okta, etc.)
+- Environment variables: `OAUTH_ISSUER_URL`, `OAUTH_AUDIENCE` (optional)
+- Token verification via JWKS (fetches public keys from `{issuer}/.well-known/jwks.json`)
+- Protected resource metadata endpoint at `/.well-known/oauth-protected-resource`
+- Server startup validation ensures OAuth provider is reachable
+- See [docs/oauth-setup.md](docs/oauth-setup.md) for provider-specific setup instructions
+
+Generated project structure (same for both templates, +auth.ts when OAuth enabled):
 ```
 {project-name}/
 ├── src/
 │   ├── server.ts     # MCP server with tools/prompts/resources
-│   └── index.ts      # Express app and transport setup
+│   ├── index.ts      # Express app and transport setup
+│   └── auth.ts       # OAuth middleware (only when OAuth enabled)
 ├── package.json
 ├── tsconfig.json
 ├── .gitignore

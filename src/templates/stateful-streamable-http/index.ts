@@ -1,17 +1,57 @@
-export function getIndexTemplate(): string {
-  return `import { type Request, type Response } from 'express';
+export interface TemplateOptions {
+  withOAuth?: boolean;
+}
+
+export function getIndexTemplate(options?: TemplateOptions): string {
+  const withOAuth = options?.withOAuth ?? false;
+
+  const imports = withOAuth
+    ? `import { type Request, type Response } from 'express';
 import { randomUUID } from 'node:crypto';
 import { createMcpExpressApp } from '@modelcontextprotocol/sdk/server/express.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { isInitializeRequest } from '@modelcontextprotocol/sdk/types.js';
 import { getServer } from './server.js';
+import {
+  setupAuthMetadataRouter,
+  authMiddleware,
+  getOAuthMetadataUrl,
+  validateOAuthConfig,
+} from './auth.js';`
+    : `import { type Request, type Response } from 'express';
+import { randomUUID } from 'node:crypto';
+import { createMcpExpressApp } from '@modelcontextprotocol/sdk/server/express.js';
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+import { isInitializeRequest } from '@modelcontextprotocol/sdk/types.js';
+import { getServer } from './server.js';`;
 
-const app = createMcpExpressApp();
+  const appSetup = `const app = createMcpExpressApp();`;
+
+  const postRoute = withOAuth
+    ? `app.post('/mcp', authMiddleware, async (req: Request, res: Response) => {`
+    : `app.post('/mcp', async (req: Request, res: Response) => {`;
+
+  const getRoute = withOAuth
+    ? `app.get('/mcp', authMiddleware, async (req: Request, res: Response) => {`
+    : `app.get('/mcp', async (req: Request, res: Response) => {`;
+
+  const deleteRoute = withOAuth
+    ? `app.delete('/mcp', authMiddleware, async (req: Request, res: Response) => {`
+    : `app.delete('/mcp', async (req: Request, res: Response) => {`;
+
+  const startupLog = withOAuth
+    ? `console.log(\`MCP Stateful HTTP Server listening on port \${PORT}\`);
+  console.log(\`OAuth metadata available at \${getOAuthMetadataUrl()}\`);`
+    : `console.log(\`MCP Stateful HTTP Server listening on port \${PORT}\`);`;
+
+  return `${imports}
+
+${appSetup}
 
 // Map to store transports by session ID
 const transports: { [sessionId: string]: StreamableHTTPServerTransport } = {};
 
-app.post('/mcp', async (req: Request, res: Response) => {
+${postRoute}
   const sessionId = req.headers['mcp-session-id'] as string | undefined;
   if (sessionId) {
     console.log(\`Received MCP request for session: \${sessionId}\`);
@@ -79,7 +119,7 @@ app.post('/mcp', async (req: Request, res: Response) => {
   }
 });
 
-app.get('/mcp', async (req: Request, res: Response) => {
+${getRoute}
   const sessionId = req.headers['mcp-session-id'] as string | undefined;
   if (!sessionId || !transports[sessionId]) {
     res.status(400).send('Invalid or missing session ID');
@@ -91,7 +131,7 @@ app.get('/mcp', async (req: Request, res: Response) => {
   await transport.handleRequest(req, res);
 });
 
-app.delete('/mcp', async (req: Request, res: Response) => {
+${deleteRoute}
   const sessionId = req.headers['mcp-session-id'] as string | undefined;
   if (!sessionId || !transports[sessionId]) {
     res.status(400).send('Invalid or missing session ID');
@@ -111,11 +151,33 @@ app.delete('/mcp', async (req: Request, res: Response) => {
   }
 });
 
-// Start the server
+${
+  withOAuth
+    ? `// Start the server
+const PORT = process.env.PORT || 3000;
+
+async function main() {
+  // Validate OAuth configuration and fetch OIDC discovery document
+  await validateOAuthConfig();
+
+  // Setup OAuth metadata routes (must be after validateOAuthConfig)
+  setupAuthMetadataRouter(app);
+
+  app.listen(PORT, () => {
+    ${startupLog}
+  });
+}
+
+main().catch((error) => {
+  console.error('Failed to start server:', error.message);
+  process.exit(1);
+});`
+    : `// Start the server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(\`MCP Stateful HTTP Server listening on port \${PORT}\`);
-});
+  ${startupLog}
+});`
+}
 
 // Handle server shutdown
 process.on('SIGINT', async () => {
@@ -139,3 +201,4 @@ process.on('SIGINT', async () => {
 
 export { getServerTemplate } from './server.js';
 export { getReadmeTemplate } from './readme.js';
+export { getAuthTemplate } from './auth.js';

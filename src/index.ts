@@ -11,11 +11,13 @@ import {
   getServerTemplate as getStatelessServerTemplate,
   getIndexTemplate as getStatelessIndexTemplate,
   getReadmeTemplate as getStatelessReadmeTemplate,
+  type TemplateOptions,
 } from './templates/streamable-http/index.js';
 import {
   getServerTemplate as getStatefulServerTemplate,
   getIndexTemplate as getStatefulIndexTemplate,
   getReadmeTemplate as getStatefulReadmeTemplate,
+  getAuthTemplate as getStatefulAuthTemplate,
 } from './templates/stateful-streamable-http/index.js';
 
 type TemplateType = 'stateless' | 'stateful';
@@ -25,8 +27,9 @@ const templateFunctions: Record<
   TemplateType,
   {
     getServerTemplate: (projectName: string) => string;
-    getIndexTemplate: () => string;
-    getReadmeTemplate: (projectName: string) => string;
+    getIndexTemplate: (options?: TemplateOptions) => string;
+    getReadmeTemplate: (projectName: string, options?: TemplateOptions) => string;
+    getAuthTemplate?: () => string;
   }
 > = {
   stateless: {
@@ -38,6 +41,7 @@ const templateFunctions: Record<
     getServerTemplate: getStatefulServerTemplate,
     getIndexTemplate: getStatefulIndexTemplate,
     getReadmeTemplate: getStatefulReadmeTemplate,
+    getAuthTemplate: getStatefulAuthTemplate,
   },
 };
 
@@ -115,6 +119,23 @@ async function main() {
   );
 
   const templateType: TemplateType = templateTypeResponse.templateType || 'stateless';
+
+  // OAuth prompt - only for stateful template
+  let withOAuth = false;
+  if (templateType === 'stateful') {
+    const oauthResponse = await prompts(
+      {
+        type: 'confirm',
+        name: 'withOAuth',
+        message: 'Enable OAuth authentication?',
+        initial: false,
+      },
+      { onCancel }
+    );
+    withOAuth = oauthResponse.withOAuth ?? false;
+  }
+
+  const templateOptions: TemplateOptions = { withOAuth };
   const templates = templateFunctions[templateType];
 
   const projectPath = join(process.cwd(), projectName);
@@ -124,16 +145,30 @@ async function main() {
     // Create directories
     await mkdir(srcPath, { recursive: true });
 
-    // Write all template files
-    await Promise.all([
+    // Build list of files to write
+    const filesToWrite = [
       writeFile(join(srcPath, 'server.ts'), templates.getServerTemplate(projectName)),
-      writeFile(join(srcPath, 'index.ts'), templates.getIndexTemplate()),
-      writeFile(join(projectPath, 'package.json'), getPackageJsonTemplate(projectName)),
+      writeFile(join(srcPath, 'index.ts'), templates.getIndexTemplate(templateOptions)),
+      writeFile(
+        join(projectPath, 'package.json'),
+        getPackageJsonTemplate(projectName, templateOptions)
+      ),
       writeFile(join(projectPath, 'tsconfig.json'), getTsconfigTemplate()),
       writeFile(join(projectPath, '.gitignore'), getGitignoreTemplate()),
-      writeFile(join(projectPath, '.env.example'), getEnvExampleTemplate()),
-      writeFile(join(projectPath, 'README.md'), templates.getReadmeTemplate(projectName)),
-    ]);
+      writeFile(join(projectPath, '.env.example'), getEnvExampleTemplate(templateOptions)),
+      writeFile(
+        join(projectPath, 'README.md'),
+        templates.getReadmeTemplate(projectName, templateOptions)
+      ),
+    ];
+
+    // Conditionally add auth.ts for OAuth-enabled stateful template
+    if (withOAuth && templates.getAuthTemplate) {
+      filesToWrite.push(writeFile(join(srcPath, 'auth.ts'), templates.getAuthTemplate()));
+    }
+
+    // Write all template files
+    await Promise.all(filesToWrite);
 
     const commands = packageManagerCommands[packageManager];
 

@@ -1,4 +1,8 @@
-export function getReadmeTemplate(projectName: string): string {
+import type { TemplateOptions } from './index.js';
+
+// Options parameter added for type consistency with stateful template (OAuth not supported in stateless)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function getReadmeTemplate(projectName: string, options?: TemplateOptions): string {
   return `# ${projectName}
 
 A stateless streamable HTTP MCP (Model Context Protocol) server.
