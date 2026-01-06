@@ -130,4 +130,108 @@ describe('stateful-streamable-http templates', () => {
       expect(template).toContain('DELETE /mcp');
     });
   });
+
+  describe('getIndexTemplate with OAuth', () => {
+    it('should include auth imports when OAuth enabled', () => {
+      const template = getIndexTemplate({ withOAuth: true });
+      expect(template).toContain("from './auth.js'");
+      expect(template).toContain('setupAuthMetadataRouter');
+      expect(template).toContain('authMiddleware');
+      expect(template).toContain('getOAuthMetadataUrl');
+    });
+
+    it('should import validateOAuthConfig when OAuth enabled', () => {
+      const template = getIndexTemplate({ withOAuth: true });
+      expect(template).toContain('validateOAuthConfig');
+    });
+
+    it('should setup auth metadata router when OAuth enabled', () => {
+      const template = getIndexTemplate({ withOAuth: true });
+      expect(template).toContain('setupAuthMetadataRouter(app)');
+    });
+
+    it('should apply auth middleware to routes when OAuth enabled', () => {
+      const template = getIndexTemplate({ withOAuth: true });
+      expect(template).toContain("app.post('/mcp', authMiddleware,");
+      expect(template).toContain("app.get('/mcp', authMiddleware,");
+      expect(template).toContain("app.delete('/mcp', authMiddleware,");
+    });
+
+    it('should log OAuth metadata URL on startup when OAuth enabled', () => {
+      const template = getIndexTemplate({ withOAuth: true });
+      expect(template).toContain('getOAuthMetadataUrl()');
+    });
+
+    it('should call validateOAuthConfig before starting server when OAuth enabled', () => {
+      const template = getIndexTemplate({ withOAuth: true });
+      expect(template).toContain('await validateOAuthConfig()');
+    });
+
+    it('should wrap server startup in async main function when OAuth enabled', () => {
+      const template = getIndexTemplate({ withOAuth: true });
+      expect(template).toContain('async function main()');
+      expect(template).toContain('main().catch');
+    });
+
+    it('should exit with error if OAuth validation fails', () => {
+      const template = getIndexTemplate({ withOAuth: true });
+      expect(template).toContain('Failed to start server');
+      expect(template).toContain('process.exit(1)');
+    });
+
+    it('should NOT include auth imports when OAuth disabled', () => {
+      const template = getIndexTemplate({ withOAuth: false });
+      expect(template).not.toContain("from './auth.js'");
+      expect(template).not.toContain('authMiddleware');
+    });
+
+    it('should NOT include auth imports by default', () => {
+      const template = getIndexTemplate();
+      expect(template).not.toContain("from './auth.js'");
+    });
+
+    it('should NOT wrap in async main when OAuth disabled', () => {
+      const template = getIndexTemplate({ withOAuth: false });
+      expect(template).not.toContain('async function main()');
+    });
+  });
+
+  describe('getReadmeTemplate with OAuth', () => {
+    it('should include OAuth section when enabled', () => {
+      const template = getReadmeTemplate(projectName, { withOAuth: true });
+      expect(template).toContain('## OAuth Authentication');
+      expect(template).toContain('OAUTH_ISSUER_URL');
+      expect(template).toContain('OAUTH_AUDIENCE');
+      expect(template).toContain('Bearer token');
+    });
+
+    it('should list supported OAuth providers', () => {
+      const template = getReadmeTemplate(projectName, { withOAuth: true });
+      expect(template).toContain('Auth0');
+      expect(template).toContain('Keycloak');
+      expect(template).toContain('Azure AD');
+      expect(template).toContain('Okta');
+    });
+
+    it('should document JWKS-based JWT validation', () => {
+      const template = getReadmeTemplate(projectName, { withOAuth: true });
+      expect(template).toContain('JWT');
+      expect(template).toContain('.well-known/jwks.json');
+    });
+
+    it('should include auth.ts in project structure when OAuth enabled', () => {
+      const template = getReadmeTemplate(projectName, { withOAuth: true });
+      expect(template).toContain('auth.ts');
+    });
+
+    it('should NOT include OAuth section when disabled', () => {
+      const template = getReadmeTemplate(projectName, { withOAuth: false });
+      expect(template).not.toContain('## OAuth Authentication');
+    });
+
+    it('should NOT include OAuth section by default', () => {
+      const template = getReadmeTemplate(projectName);
+      expect(template).not.toContain('## OAuth Authentication');
+    });
+  });
 });

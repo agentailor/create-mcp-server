@@ -1,7 +1,89 @@
-export function getReadmeTemplate(projectName: string): string {
+import type { TemplateOptions } from './index.js';
+
+export function getReadmeTemplate(projectName: string, options?: TemplateOptions): string {
+  const withOAuth = options?.withOAuth ?? false;
+
+  const description = withOAuth
+    ? 'A stateful streamable HTTP MCP (Model Context Protocol) server with session management and OAuth authentication.'
+    : 'A stateful streamable HTTP MCP (Model Context Protocol) server with session management.';
+
+  const oauthSection = withOAuth
+    ? `
+## OAuth Authentication
+
+This server uses OAuth 2.0 with JWT tokens for authentication. It works with any OIDC-compliant provider including:
+- Auth0
+- Keycloak
+- Azure AD / Entra ID
+- Okta
+- And more...
+
+### Environment Variables
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| \`OAUTH_ISSUER_URL\` | Base URL of your OAuth provider | \`https://your-tenant.auth0.com\` |
+| \`OAUTH_AUDIENCE\` | API identifier / audience claim (optional) | \`https://your-api.com\` |
+
+### Provider-Specific Issuer URLs
+
+| Provider | Issuer URL Format |
+|----------|-------------------|
+| Auth0 | \`https://{tenant}.auth0.com\` |
+| Keycloak | \`http://{host}:{port}/realms/{realm}\` |
+| Azure AD | \`https://login.microsoftonline.com/{tenant}/v2.0\` |
+| Okta | \`https://{domain}.okta.com/oauth2/default\` |
+
+### How It Works
+
+1. The server fetches public keys from \`{OAUTH_ISSUER_URL}/.well-known/jwks.json\`
+2. Incoming JWT tokens are verified locally using these keys
+3. The token's \`iss\` (issuer) and optionally \`aud\` (audience) claims are validated
+
+### Protected Resource Metadata
+
+- **GET /.well-known/oauth-protected-resource** - OAuth protected resource metadata
+
+### Token Requirements
+
+- All MCP endpoints require a valid JWT Bearer token in the \`Authorization\` header
+- Tokens must be signed by the configured OAuth provider
+- If \`OAUTH_AUDIENCE\` is set, the token's \`aud\` claim must match
+`
+    : '';
+
+  const apiEndpointsOAuthNote = withOAuth
+    ? '\n  - Requires valid Bearer token in Authorization header'
+    : '';
+
+  const projectStructure = withOAuth
+    ? `\`\`\`
+${projectName}/
+├── src/
+│   ├── server.ts     # MCP server definition (tools, prompts, resources)
+│   ├── index.ts      # Express app and stateful HTTP transport setup
+│   └── auth.ts       # OAuth configuration and middleware
+├── package.json
+├── tsconfig.json
+└── README.md
+\`\`\``
+    : `\`\`\`
+${projectName}/
+├── src/
+│   ├── server.ts     # MCP server definition (tools, prompts, resources)
+│   └── index.ts      # Express app and stateful HTTP transport setup
+├── package.json
+├── tsconfig.json
+└── README.md
+\`\`\``;
+
+  const customizationOAuthNote = withOAuth
+    ? '\n- Configure OAuth scopes and token verification in `src/auth.ts`'
+    : '';
+
   return `# ${projectName}
 
-A stateful streamable HTTP MCP (Model Context Protocol) server with session management.
+${description}
 
 ## About
 
@@ -22,16 +104,16 @@ npm start
 \`\`\`
 
 The server will start on port 3000 by default. You can change this by setting the \`PORT\` environment variable.
-
+${oauthSection}
 ## API Endpoints
 
 - **POST /mcp** - Main MCP endpoint for JSON-RPC messages
   - First request must be an initialization request (no session ID required)
-  - Subsequent requests must include \`mcp-session-id\` header
+  - Subsequent requests must include \`mcp-session-id\` header${apiEndpointsOAuthNote}
 - **GET /mcp** - Server-Sent Events (SSE) stream for server-initiated messages
-  - Requires \`mcp-session-id\` header
+  - Requires \`mcp-session-id\` header${apiEndpointsOAuthNote}
 - **DELETE /mcp** - Terminate a session
-  - Requires \`mcp-session-id\` header
+  - Requires \`mcp-session-id\` header${apiEndpointsOAuthNote}
 
 ## Session Management
 
@@ -63,20 +145,12 @@ This server comes with example implementations to help you get started:
 
 ## Project Structure
 
-\`\`\`
-${projectName}/
-├── src/
-│   ├── server.ts     # MCP server definition (tools, prompts, resources)
-│   └── index.ts      # Express app and stateful HTTP transport setup
-├── package.json
-├── tsconfig.json
-└── README.md
-\`\`\`
+${projectStructure}
 
 ## Customization
 
 - Add new tools, prompts, and resources in \`src/server.ts\`
-- Modify the HTTP transport configuration in \`src/index.ts\`
+- Modify the HTTP transport configuration in \`src/index.ts\`${customizationOAuthNote}
 
 ## Learn More
 
