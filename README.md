@@ -50,7 +50,3 @@ The [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) is an open 
 ## Built by agentailor
 
 Built by [agentailor](https://agentailor.com/?utm_source=github&utm_medium=readme&utm_campaign=create-mcp-server) — your launchpad for production-ready MCP servers and scalable AI agents. We provide the tools, templates, and expertise to ship AI-powered applications faster.
-
-## License
-
-MIT
