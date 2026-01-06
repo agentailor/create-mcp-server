@@ -6,14 +6,14 @@ export function getPackageJsonTemplate(projectName: string, options?: TemplateOp
   const withOAuth = options?.withOAuth ?? false;
 
   const dependencies: Record<string, string> = {
-    '@modelcontextprotocol/sdk': '^1.12.1',
-    express: '^5.1.0',
-    zod: '^3.25.30',
+    '@modelcontextprotocol/sdk': '^1.25.1',
+    express: '^5.2.1',
+    zod: '^4.3.5',
   };
 
   if (withOAuth) {
-    dependencies['dotenv'] = '^16.4.7';
-    dependencies['jose'] = '^6.0.10';
+    dependencies['dotenv'] = '^17.2.3';
+    dependencies['jose'] = '^6.1.3';
   }
 
   const packageJson = {
@@ -28,9 +28,9 @@ export function getPackageJsonTemplate(projectName: string, options?: TemplateOp
     },
     dependencies,
     devDependencies: {
-      '@types/express': '^5.0.0',
-      '@types/node': '^22.15.21',
-      typescript: '^5.8.3',
+      '@types/express': '^5.0.6',
+      '@types/node': '^25.0.3',
+      typescript: '^5.9.3',
     },
     engines: {
       node: '>=20',

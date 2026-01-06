@@ -56,9 +56,7 @@ const tokenVerifier = {
       const parts = token.split('.');
       if (parts.length !== 3) {
         throw new Error(
-          'Token is not a valid JWT format (expected 3 parts separated by dots). ' +
-          'If using Auth0, ensure you include the "audience" parameter when requesting the token. ' +
-          'Without an audience, Auth0 returns opaque tokens instead of JWTs.'
+          'Token is not a valid JWT format (expected 3 parts separated by dots). '
         );
       }
 

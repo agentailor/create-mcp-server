@@ -41,7 +41,7 @@ import { getServer } from './server.js';`;
 
   const startupLog = withOAuth
     ? `console.log(\`MCP Stateful HTTP Server listening on port \${PORT}\`);
-  console.log(\`OAuth metadata available at \${getOAuthMetadataUrl()}\`);`
+    console.log(\`OAuth metadata available at \${getOAuthMetadataUrl()}\`);`
     : `console.log(\`MCP Stateful HTTP Server listening on port \${PORT}\`);`;
 
   return `${imports}
