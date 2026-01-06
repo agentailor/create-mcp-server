@@ -14,6 +14,7 @@ npx @agentailor/create-mcp-server
 - **Optional OAuth** — OIDC-compliant authentication ([setup guide](docs/oauth-setup.md))
 - **Package manager choice** — npm, pnpm, or yarn
 - **TypeScript + Express.js** — ready to customize
+- **MCP Inspector** — built-in debugging with `npm run inspect`
 
 ## Templates
 
@@ -43,10 +44,14 @@ my-mcp-server/
 └── README.md
 ```
 
+**Scripts:**
+- `npm run dev` — build and start the server
+- `npm run inspect` — open MCP Inspector (update URL in `package.json` if needed)
+
 ## What is MCP?
 
 The [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) is an open protocol that enables AI assistants to interact with external tools, data sources, and services.
 
-## Built by agentailor
+## Built by Agentailor
 
-Built by [agentailor](https://agentailor.com/?utm_source=github&utm_medium=readme&utm_campaign=create-mcp-server) — your launchpad for production-ready MCP servers and scalable AI agents. We provide the tools, templates, and expertise to ship AI-powered applications faster.
+Built by [Agentailor](https://agentailor.com/?utm_source=github&utm_medium=readme&utm_campaign=create-mcp-server) — your launchpad for production-ready MCP servers and scalable AI agents. We provide the tools, templates, and expertise to ship AI-powered applications faster.
