@@ -11,7 +11,7 @@ npx @agentailor/create-mcp-server
 ## Features
 
 - **Two templates** — stateless or stateful with session management
-- **Optional OAuth** — OIDC-compliant authentication (Auth0, Keycloak, Azure AD, Okta)
+- **Optional OAuth** — OIDC-compliant authentication ([setup guide](docs/oauth-setup.md))
 - **Package manager choice** — npm, pnpm, or yarn
 - **TypeScript + Express.js** — ready to customize
 
