@@ -25,12 +25,14 @@ export function getPackageJsonTemplate(projectName: string, options?: TemplateOp
       build: 'tsc',
       dev: 'tsc && node dist/index.js',
       start: 'node dist/index.js',
+      inspect: 'mcp-inspector http://localhost:3000/mcp',
     },
     dependencies,
     devDependencies: {
       '@types/express': '^5.0.6',
       '@types/node': '^25.0.3',
       typescript: '^5.9.3',
+      '@modelcontextprotocol/inspector': '^0.18.0',
     },
     engines: {
       node: '>=20',
