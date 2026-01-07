@@ -1,5 +1,6 @@
 export interface TemplateOptions {
   withOAuth?: boolean;
+  packageManager?: 'npm' | 'pnpm' | 'yarn';
 }
 
 // Options parameter added for type consistency with stateful template (OAuth not supported in stateless)
@@ -70,13 +71,25 @@ app.delete('/mcp', async (req: Request, res: Response) => {
 
 // Start the server
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, (error) => {
-  if (error) {
-    console.error('Failed to start server:', error);
-    process.exit(1);
-  }
-  console.log(\`MCP Streamable HTTP Server listening on port \${PORT}\`);
-});
+
+function startServer(port: number | string): void {
+  const server = app.listen(port, () => {
+    console.log(\`MCP Streamable HTTP Server listening on port \${port}\`);
+  });
+
+  server.on('error', (error: NodeJS.ErrnoException) => {
+    if (error.code === 'EADDRINUSE') {
+      const randomPort = Math.floor(Math.random() * (65535 - 49152) + 49152);
+      console.log(\`Port \${port} is in use, trying port \${randomPort}...\`);
+      startServer(randomPort);
+    } else {
+      console.error('Failed to start server:', error);
+      process.exit(1);
+    }
+  });
+}
+
+startServer(PORT);
 
 // Handle server shutdown
 process.on('SIGINT', async () => {

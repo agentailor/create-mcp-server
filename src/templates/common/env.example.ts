@@ -1,5 +1,6 @@
 export interface TemplateOptions {
   withOAuth?: boolean;
+  packageManager?: 'npm' | 'pnpm' | 'yarn';
 }
 
 export function getEnvExampleTemplate(options?: TemplateOptions): string {

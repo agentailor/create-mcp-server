@@ -148,7 +148,7 @@ async function main() {
   );
   const withGitInit = gitInitResponse.withGitInit ?? false;
 
-  const templateOptions: TemplateOptions = { withOAuth };
+  const templateOptions: TemplateOptions = { withOAuth, packageManager };
   const templates = templateFunctions[templateType];
 
   const projectPath = join(process.cwd(), projectName);

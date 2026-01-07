@@ -1,8 +1,14 @@
 import type { TemplateOptions } from './index.js';
 
-// Options parameter added for type consistency with stateful template (OAuth not supported in stateless)
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function getReadmeTemplate(projectName: string, options?: TemplateOptions): string {
+  const packageManager = options?.packageManager ?? 'npm';
+
+  const commands = {
+    npm: { install: 'npm install', dev: 'npm run dev', build: 'npm run build', start: 'npm start' },
+    pnpm: { install: 'pnpm install', dev: 'pnpm dev', build: 'pnpm build', start: 'pnpm start' },
+    yarn: { install: 'yarn', dev: 'yarn dev', build: 'yarn build', start: 'yarn start' },
+  }[packageManager];
+
   return `# ${projectName}
 
 A stateless streamable HTTP MCP (Model Context Protocol) server.
@@ -15,14 +21,14 @@ This project was created with [@agentailor/create-mcp-server](https://www.npmjs.
 
 \`\`\`bash
 # Install dependencies
-npm install
+${commands.install}
 
 # Build and run in development
-npm run dev
+${commands.dev}
 
 # Or build and start separately
-npm run build
-npm start
+${commands.build}
+${commands.start}
 \`\`\`
 
 The server will start on port 3000 by default. You can change this by setting the \`PORT\` environment variable.
