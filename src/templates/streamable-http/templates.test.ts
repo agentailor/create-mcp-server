@@ -77,10 +77,12 @@ describe('streamable-http templates', () => {
       expect(template).toContain(`# ${projectName}`);
     });
 
-    it('should include getting started instructions', () => {
+    it('should include getting started instructions with npm by default', () => {
       const template = getReadmeTemplate(projectName);
       expect(template).toContain('npm install');
       expect(template).toContain('npm run dev');
+      expect(template).toContain('npm run build');
+      expect(template).toContain('npm start');
     });
 
     it('should document the /mcp endpoint', () => {
@@ -91,6 +93,34 @@ describe('streamable-http templates', () => {
     it('should describe stateless behavior', () => {
       const template = getReadmeTemplate(projectName);
       expect(template).toContain('stateless');
+    });
+  });
+
+  describe('getReadmeTemplate with package manager', () => {
+    it('should use npm commands when packageManager is npm', () => {
+      const template = getReadmeTemplate(projectName, { packageManager: 'npm' });
+      expect(template).toContain('npm install');
+      expect(template).toContain('npm run dev');
+      expect(template).toContain('npm run build');
+      expect(template).toContain('npm start');
+    });
+
+    it('should use pnpm commands when packageManager is pnpm', () => {
+      const template = getReadmeTemplate(projectName, { packageManager: 'pnpm' });
+      expect(template).toContain('pnpm install');
+      expect(template).toContain('pnpm dev');
+      expect(template).toContain('pnpm build');
+      expect(template).toContain('pnpm start');
+      expect(template).not.toContain('npm run');
+    });
+
+    it('should use yarn commands when packageManager is yarn', () => {
+      const template = getReadmeTemplate(projectName, { packageManager: 'yarn' });
+      expect(template).toContain('yarn\n');
+      expect(template).toContain('yarn dev');
+      expect(template).toContain('yarn build');
+      expect(template).toContain('yarn start');
+      expect(template).not.toContain('npm run');
     });
   });
 });

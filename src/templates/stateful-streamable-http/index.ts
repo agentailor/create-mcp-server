@@ -1,5 +1,6 @@
 export interface TemplateOptions {
   withOAuth?: boolean;
+  packageManager?: 'npm' | 'pnpm' | 'yarn';
 }
 
 export function getIndexTemplate(options?: TemplateOptions): string {
@@ -38,11 +39,6 @@ import { getServer } from './server.js';`;
   const deleteRoute = withOAuth
     ? `app.delete('/mcp', authMiddleware, async (req: Request, res: Response) => {`
     : `app.delete('/mcp', async (req: Request, res: Response) => {`;
-
-  const startupLog = withOAuth
-    ? `console.log(\`MCP Stateful HTTP Server listening on port \${PORT}\`);
-    console.log(\`OAuth metadata available at \${getOAuthMetadataUrl()}\`);`
-    : `console.log(\`MCP Stateful HTTP Server listening on port \${PORT}\`);`;
 
   return `${imports}
 
@@ -156,6 +152,24 @@ ${
     ? `// Start the server
 const PORT = process.env.PORT || 3000;
 
+function startServer(port: number | string): void {
+  const server = app.listen(port, () => {
+    console.log(\`MCP Stateful HTTP Server listening on port \${port}\`);
+    console.log(\`OAuth metadata available at \${getOAuthMetadataUrl()}\`);
+  });
+
+  server.on('error', (error: NodeJS.ErrnoException) => {
+    if (error.code === 'EADDRINUSE') {
+      const randomPort = Math.floor(Math.random() * (65535 - 49152) + 49152);
+      console.log(\`Port \${port} is in use, trying port \${randomPort}...\`);
+      startServer(randomPort);
+    } else {
+      console.error('Failed to start server:', error);
+      process.exit(1);
+    }
+  });
+}
+
 async function main() {
   // Validate OAuth configuration and fetch OIDC discovery document
   await validateOAuthConfig();
@@ -163,9 +177,7 @@ async function main() {
   // Setup OAuth metadata routes (must be after validateOAuthConfig)
   setupAuthMetadataRouter(app);
 
-  app.listen(PORT, () => {
-    ${startupLog}
-  });
+  startServer(PORT);
 }
 
 main().catch((error) => {
@@ -174,9 +186,25 @@ main().catch((error) => {
 });`
     : `// Start the server
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  ${startupLog}
-});`
+
+function startServer(port: number | string): void {
+  const server = app.listen(port, () => {
+    console.log(\`MCP Stateful HTTP Server listening on port \${port}\`);
+  });
+
+  server.on('error', (error: NodeJS.ErrnoException) => {
+    if (error.code === 'EADDRINUSE') {
+      const randomPort = Math.floor(Math.random() * (65535 - 49152) + 49152);
+      console.log(\`Port \${port} is in use, trying port \${randomPort}...\`);
+      startServer(randomPort);
+    } else {
+      console.error('Failed to start server:', error);
+      process.exit(1);
+    }
+  });
+}
+
+startServer(PORT);`
 }
 
 // Handle server shutdown
