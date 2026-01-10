@@ -9,22 +9,33 @@ import { getTsconfigTemplate } from './templates/common/tsconfig.json.js';
 import { getGitignoreTemplate } from './templates/common/gitignore.js';
 import { getEnvExampleTemplate } from './templates/common/env.example.js';
 import {
-  getServerTemplate as getStatelessServerTemplate,
-  getIndexTemplate as getStatelessIndexTemplate,
-  getReadmeTemplate as getStatelessReadmeTemplate,
+  getServerTemplate as getSdkStatelessServerTemplate,
+  getIndexTemplate as getSdkStatelessIndexTemplate,
+  getReadmeTemplate as getSdkStatelessReadmeTemplate,
   type TemplateOptions,
-} from './templates/streamable-http/index.js';
+} from './templates/sdk/stateless/index.js';
 import {
-  getServerTemplate as getStatefulServerTemplate,
-  getIndexTemplate as getStatefulIndexTemplate,
-  getReadmeTemplate as getStatefulReadmeTemplate,
-  getAuthTemplate as getStatefulAuthTemplate,
-} from './templates/stateful-streamable-http/index.js';
+  getServerTemplate as getSdkStatefulServerTemplate,
+  getIndexTemplate as getSdkStatefulIndexTemplate,
+  getReadmeTemplate as getSdkStatefulReadmeTemplate,
+  getAuthTemplate as getSdkAuthTemplate,
+} from './templates/sdk/stateful/index.js';
+import {
+  getServerTemplate as getFastMCPServerTemplate,
+  getIndexTemplate as getFastMCPIndexTemplate,
+  getReadmeTemplate as getFastMCPReadmeTemplate,
+} from './templates/fastmcp/index.js';
 
+type Framework = 'sdk' | 'fastmcp';
 type TemplateType = 'stateless' | 'stateful';
 type PackageManager = 'npm' | 'pnpm' | 'yarn';
 
-const templateFunctions: Record<
+interface ExtendedTemplateOptions extends TemplateOptions {
+  framework?: Framework;
+  stateless?: boolean;
+}
+
+const sdkTemplateFunctions: Record<
   TemplateType,
   {
     getServerTemplate: (projectName: string) => string;
@@ -34,16 +45,22 @@ const templateFunctions: Record<
   }
 > = {
   stateless: {
-    getServerTemplate: getStatelessServerTemplate,
-    getIndexTemplate: getStatelessIndexTemplate,
-    getReadmeTemplate: getStatelessReadmeTemplate,
+    getServerTemplate: getSdkStatelessServerTemplate,
+    getIndexTemplate: getSdkStatelessIndexTemplate,
+    getReadmeTemplate: getSdkStatelessReadmeTemplate,
   },
   stateful: {
-    getServerTemplate: getStatefulServerTemplate,
-    getIndexTemplate: getStatefulIndexTemplate,
-    getReadmeTemplate: getStatefulReadmeTemplate,
-    getAuthTemplate: getStatefulAuthTemplate,
+    getServerTemplate: getSdkStatefulServerTemplate,
+    getIndexTemplate: getSdkStatefulIndexTemplate,
+    getReadmeTemplate: getSdkStatefulReadmeTemplate,
+    getAuthTemplate: getSdkAuthTemplate,
   },
+};
+
+const fastmcpTemplateFunctions = {
+  getServerTemplate: getFastMCPServerTemplate,
+  getIndexTemplate: getFastMCPIndexTemplate,
+  getReadmeTemplate: getFastMCPReadmeTemplate,
 };
 
 const packageManagerCommands: Record<PackageManager, { install: string; dev: string }> = {
@@ -101,13 +118,39 @@ async function main() {
 
   const packageManager: PackageManager = packageManagerResponse.packageManager || 'npm';
 
+  // Framework selection
+  const frameworkResponse = await prompts(
+    {
+      type: 'select',
+      name: 'framework',
+      message: 'Framework:',
+      choices: [
+        {
+          title: 'Official MCP SDK',
+          value: 'sdk',
+          description: 'Full control with Express.js',
+        },
+        {
+          title: 'FastMCP',
+          value: 'fastmcp',
+          description: 'Simpler API, less boilerplate',
+        },
+      ],
+      initial: 0,
+    },
+    { onCancel }
+  );
+
+  const framework: Framework = frameworkResponse.framework || 'sdk';
+
+  // Server mode selection
   const templateTypeResponse = await prompts(
     {
       type: 'select',
       name: 'templateType',
-      message: 'Template type:',
+      message: 'Server mode:',
       choices: [
-        { title: 'Stateless', value: 'stateless', description: 'Simple stateless HTTP server' },
+        { title: 'Stateless', value: 'stateless', description: 'Simple HTTP server' },
         {
           title: 'Stateful',
           value: 'stateful',
@@ -121,9 +164,9 @@ async function main() {
 
   const templateType: TemplateType = templateTypeResponse.templateType || 'stateless';
 
-  // OAuth prompt - only for stateful template
+  // OAuth prompt - only for SDK stateful template
   let withOAuth = false;
-  if (templateType === 'stateful') {
+  if (framework === 'sdk' && templateType === 'stateful') {
     const oauthResponse = await prompts(
       {
         type: 'confirm',
@@ -148,8 +191,12 @@ async function main() {
   );
   const withGitInit = gitInitResponse.withGitInit ?? false;
 
-  const templateOptions: TemplateOptions = { withOAuth, packageManager };
-  const templates = templateFunctions[templateType];
+  const templateOptions: ExtendedTemplateOptions = {
+    withOAuth,
+    packageManager,
+    framework,
+    stateless: templateType === 'stateless',
+  };
 
   const projectPath = join(process.cwd(), projectName);
   const srcPath = join(projectPath, 'src');
@@ -159,26 +206,52 @@ async function main() {
     await mkdir(srcPath, { recursive: true });
 
     // Build list of files to write
-    const filesToWrite = [
-      writeFile(join(srcPath, 'server.ts'), templates.getServerTemplate(projectName)),
-      writeFile(join(srcPath, 'index.ts'), templates.getIndexTemplate(templateOptions)),
+    const filesToWrite: Promise<void>[] = [];
+
+    if (framework === 'fastmcp') {
+      // FastMCP templates
+      filesToWrite.push(
+        writeFile(
+          join(srcPath, 'server.ts'),
+          fastmcpTemplateFunctions.getServerTemplate(projectName)
+        ),
+        writeFile(
+          join(srcPath, 'index.ts'),
+          fastmcpTemplateFunctions.getIndexTemplate(templateOptions)
+        ),
+        writeFile(
+          join(projectPath, 'README.md'),
+          fastmcpTemplateFunctions.getReadmeTemplate(projectName, templateOptions)
+        )
+      );
+    } else {
+      // SDK templates
+      const templates = sdkTemplateFunctions[templateType];
+      filesToWrite.push(
+        writeFile(join(srcPath, 'server.ts'), templates.getServerTemplate(projectName)),
+        writeFile(join(srcPath, 'index.ts'), templates.getIndexTemplate(templateOptions)),
+        writeFile(
+          join(projectPath, 'README.md'),
+          templates.getReadmeTemplate(projectName, templateOptions)
+        )
+      );
+
+      // Conditionally add auth.ts for OAuth-enabled stateful template
+      if (withOAuth && templates.getAuthTemplate) {
+        filesToWrite.push(writeFile(join(srcPath, 'auth.ts'), templates.getAuthTemplate()));
+      }
+    }
+
+    // Common files for all templates
+    filesToWrite.push(
       writeFile(
         join(projectPath, 'package.json'),
         getPackageJsonTemplate(projectName, templateOptions)
       ),
       writeFile(join(projectPath, 'tsconfig.json'), getTsconfigTemplate()),
       writeFile(join(projectPath, '.gitignore'), getGitignoreTemplate()),
-      writeFile(join(projectPath, '.env.example'), getEnvExampleTemplate(templateOptions)),
-      writeFile(
-        join(projectPath, 'README.md'),
-        templates.getReadmeTemplate(projectName, templateOptions)
-      ),
-    ];
-
-    // Conditionally add auth.ts for OAuth-enabled stateful template
-    if (withOAuth && templates.getAuthTemplate) {
-      filesToWrite.push(writeFile(join(srcPath, 'auth.ts'), templates.getAuthTemplate()));
-    }
+      writeFile(join(projectPath, '.env.example'), getEnvExampleTemplate(templateOptions))
+    );
 
     // Write all template files
     await Promise.all(filesToWrite);
@@ -193,8 +266,9 @@ async function main() {
     }
 
     const commands = packageManagerCommands[packageManager];
+    const frameworkName = framework === 'fastmcp' ? 'FastMCP' : 'MCP SDK';
 
-    console.log(`\n✅ Created ${projectName} at ${projectPath}`);
+    console.log(`\n✅ Created ${projectName} with ${frameworkName} at ${projectPath}`);
     console.log(`\nNext steps:`);
     console.log(`  cd ${projectName}`);
     console.log(`  ${commands.install}`);

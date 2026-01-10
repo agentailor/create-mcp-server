@@ -14,10 +14,38 @@ describe('common templates', () => {
       expect(pkg.name).toBe(projectName);
     });
 
-    it('should use correct SDK package', () => {
+    it('should use SDK package by default', () => {
       const template = getPackageJsonTemplate(projectName);
       const pkg = JSON.parse(template);
       expect(pkg.dependencies['@modelcontextprotocol/sdk']).toBeDefined();
+      expect(pkg.dependencies['express']).toBeDefined();
+    });
+
+    it('should use FastMCP package when framework is fastmcp', () => {
+      const template = getPackageJsonTemplate(projectName, { framework: 'fastmcp' });
+      const pkg = JSON.parse(template);
+      expect(pkg.dependencies['fastmcp']).toBeDefined();
+      expect(pkg.dependencies['@modelcontextprotocol/sdk']).toBeUndefined();
+      expect(pkg.dependencies['express']).toBeUndefined();
+    });
+
+    it('should include OAuth dependencies when withOAuth is true for SDK', () => {
+      const template = getPackageJsonTemplate(projectName, { framework: 'sdk', withOAuth: true });
+      const pkg = JSON.parse(template);
+      expect(pkg.dependencies['dotenv']).toBeDefined();
+      expect(pkg.dependencies['jose']).toBeDefined();
+    });
+
+    it('should not include @types/express for FastMCP', () => {
+      const template = getPackageJsonTemplate(projectName, { framework: 'fastmcp' });
+      const pkg = JSON.parse(template);
+      expect(pkg.devDependencies['@types/express']).toBeUndefined();
+    });
+
+    it('should include @types/express for SDK', () => {
+      const template = getPackageJsonTemplate(projectName, { framework: 'sdk' });
+      const pkg = JSON.parse(template);
+      expect(pkg.devDependencies['@types/express']).toBeDefined();
     });
 
     it('should include required scripts', () => {

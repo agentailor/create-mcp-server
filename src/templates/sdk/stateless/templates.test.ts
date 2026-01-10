@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { getServerTemplate, getIndexTemplate, getReadmeTemplate } from './index.js';
 
-describe('streamable-http templates', () => {
+describe('sdk/stateless templates', () => {
   const projectName = 'test-project';
 
   describe('getServerTemplate', () => {
