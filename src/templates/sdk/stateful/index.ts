@@ -1,9 +1,7 @@
-export interface TemplateOptions {
-  withOAuth?: boolean;
-  packageManager?: 'npm' | 'pnpm' | 'yarn';
-}
+export type { SdkTemplateOptions as TemplateOptions } from '../../common/types.js';
+import type { SdkTemplateOptions } from '../../common/types.js';
 
-export function getIndexTemplate(options?: TemplateOptions): string {
+export function getIndexTemplate(options?: SdkTemplateOptions): string {
   const withOAuth = options?.withOAuth ?? false;
 
   const imports = withOAuth

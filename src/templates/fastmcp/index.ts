@@ -1,10 +1,7 @@
-export interface TemplateOptions {
-  withOAuth?: boolean;
-  packageManager?: 'npm' | 'pnpm' | 'yarn';
-  stateless?: boolean;
-}
+export type { FastMCPTemplateOptions as TemplateOptions } from '../common/types.js';
+import type { FastMCPTemplateOptions } from '../common/types.js';
 
-export function getIndexTemplate(options?: TemplateOptions): string {
+export function getIndexTemplate(options?: FastMCPTemplateOptions): string {
   const stateless = options?.stateless ?? false;
 
   const statelessConfig = stateless ? '\n    stateless: true,' : '';

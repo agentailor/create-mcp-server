@@ -1,9 +1,6 @@
-export interface TemplateOptions {
-  withOAuth?: boolean;
-  packageManager?: 'npm' | 'pnpm' | 'yarn';
-}
+import type { CommonTemplateOptions } from './types.js';
 
-export function getEnvExampleTemplate(options?: TemplateOptions): string {
+export function getEnvExampleTemplate(options?: CommonTemplateOptions): string {
   const withOAuth = options?.withOAuth ?? false;
 
   const oauthVars = withOAuth

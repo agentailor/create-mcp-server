@@ -1,11 +1,9 @@
-export interface TemplateOptions {
-  withOAuth?: boolean;
-  packageManager?: 'npm' | 'pnpm' | 'yarn';
-}
+export type { SdkTemplateOptions as TemplateOptions } from '../../common/types.js';
+import type { SdkTemplateOptions } from '../../common/types.js';
 
 // Options parameter added for type consistency with stateful template (OAuth not supported in stateless)
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function getIndexTemplate(options?: TemplateOptions): string {
+export function getIndexTemplate(options?: SdkTemplateOptions): string {
   return `import { type Request, type Response } from 'express';
 import { createMcpExpressApp } from '@modelcontextprotocol/sdk/server/express.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';

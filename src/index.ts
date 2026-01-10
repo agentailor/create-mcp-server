@@ -8,11 +8,16 @@ import { getPackageJsonTemplate } from './templates/common/package.json.js';
 import { getTsconfigTemplate } from './templates/common/tsconfig.json.js';
 import { getGitignoreTemplate } from './templates/common/gitignore.js';
 import { getEnvExampleTemplate } from './templates/common/env.example.js';
+import type {
+  CommonTemplateOptions,
+  SdkTemplateOptions,
+  Framework,
+  PackageManager,
+} from './templates/common/types.js';
 import {
   getServerTemplate as getSdkStatelessServerTemplate,
   getIndexTemplate as getSdkStatelessIndexTemplate,
   getReadmeTemplate as getSdkStatelessReadmeTemplate,
-  type TemplateOptions,
 } from './templates/sdk/stateless/index.js';
 import {
   getServerTemplate as getSdkStatefulServerTemplate,
@@ -26,21 +31,14 @@ import {
   getReadmeTemplate as getFastMCPReadmeTemplate,
 } from './templates/fastmcp/index.js';
 
-type Framework = 'sdk' | 'fastmcp';
 type TemplateType = 'stateless' | 'stateful';
-type PackageManager = 'npm' | 'pnpm' | 'yarn';
-
-interface ExtendedTemplateOptions extends TemplateOptions {
-  framework?: Framework;
-  stateless?: boolean;
-}
 
 const sdkTemplateFunctions: Record<
   TemplateType,
   {
     getServerTemplate: (projectName: string) => string;
-    getIndexTemplate: (options?: TemplateOptions) => string;
-    getReadmeTemplate: (projectName: string, options?: TemplateOptions) => string;
+    getIndexTemplate: (options?: SdkTemplateOptions) => string;
+    getReadmeTemplate: (projectName: string, options?: SdkTemplateOptions) => string;
     getAuthTemplate?: () => string;
   }
 > = {
@@ -191,7 +189,7 @@ async function main() {
   );
   const withGitInit = gitInitResponse.withGitInit ?? false;
 
-  const templateOptions: ExtendedTemplateOptions = {
+  const templateOptions: CommonTemplateOptions = {
     withOAuth,
     packageManager,
     framework,

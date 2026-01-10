@@ -1,10 +1,9 @@
-export interface TemplateOptions {
-  withOAuth?: boolean;
-  packageManager?: 'npm' | 'pnpm' | 'yarn';
-  framework?: 'sdk' | 'fastmcp';
-}
+import type { CommonTemplateOptions } from './types.js';
 
-export function getPackageJsonTemplate(projectName: string, options?: TemplateOptions): string {
+export function getPackageJsonTemplate(
+  projectName: string,
+  options?: CommonTemplateOptions
+): string {
   const withOAuth = options?.withOAuth ?? false;
   const framework = options?.framework ?? 'sdk';
 
@@ -41,8 +40,8 @@ export function getPackageJsonTemplate(projectName: string, options?: TemplateOp
     }
 
     devDependencies = {
-      '@types/express': '^5.0.2',
-      '@types/node': '^22.15.21',
+      '@types/express': '^5.0.6',
+      '@types/node': '^25.0.3',
       ...commonDevDependencies,
     };
   }
