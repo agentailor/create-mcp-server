@@ -10,24 +10,54 @@ npx @agentailor/create-mcp-server
 
 ## Features
 
-- **Two templates** — stateless or stateful with session management
-- **Optional OAuth** — OIDC-compliant authentication ([setup guide](docs/oauth-setup.md))
+- **Two frameworks** — Official MCP SDK or FastMCP
+- **Two server modes** — stateless or stateful with session management
+- **Optional OAuth** — OIDC-compliant authentication (SDK only) ([setup guide](docs/oauth-setup.md))
 - **Package manager choice** — npm, pnpm, or yarn
-- **TypeScript + Express.js** — ready to customize
+- **TypeScript ready** — ready to customize
 - **MCP Inspector** — built-in debugging with `npm run inspect`
 
-## Templates
+## Frameworks
+
+| Framework | Description |
+|-----------|-------------|
+| **Official MCP SDK** (default) | Full control with Express.js, supports OAuth |
+| **FastMCP** | Simpler API with less boilerplate |
+
+### FastMCP
+
+[FastMCP](https://github.com/punkpeye/fastmcp) is a TypeScript framework built on top of the official MCP SDK that provides a simpler, more intuitive API for building MCP servers.
+
+```typescript
+import { FastMCP } from "fastmcp";
+import { z } from "zod";
+
+const server = new FastMCP({ name: "My Server", version: "1.0.0" });
+
+server.addTool({
+  name: "add",
+  description: "Add two numbers",
+  parameters: z.object({ a: z.number(), b: z.number() }),
+  execute: async ({ a, b }) => String(a + b),
+});
+
+server.start({ transportType: "httpStream", httpStream: { port: 3000 } });
+```
+
+Learn more: [FastMCP Documentation](https://github.com/punkpeye/fastmcp)
+
+## Server Modes
 
 | Feature | Stateless (default) | Stateful |
 |---------|---------------------|----------|
 | Session management | — | ✓ |
 | SSE support | — | ✓ |
-| OAuth option | — | ✓ |
+| OAuth option (SDK only) | — | ✓ |
 | Endpoints | POST /mcp | POST, GET, DELETE /mcp |
 
 **Stateless**: Simple HTTP server — each request creates a new transport instance.
 
-**Stateful**: Session-based server with transport reuse, Server-Sent Events for real-time updates, and optional OAuth authentication.
+**Stateful**: Session-based server with transport reuse, Server-Sent Events for real-time updates, and optional OAuth authentication (SDK only).
 
 ## Generated Project
 
