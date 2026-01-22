@@ -3,8 +3,6 @@ import { getDockerfileTemplate } from './dockerfile.js';
 import { getDockerignoreTemplate } from './dockerignore.js';
 
 describe('deployment templates', () => {
-  const projectName = 'test-project';
-
   describe('getDockerfileTemplate', () => {
     it('should use multi-stage build', () => {
       const template = getDockerfileTemplate();
