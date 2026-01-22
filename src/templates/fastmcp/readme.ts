@@ -40,9 +40,10 @@ ${cmd.start}
 
 The server will start on port 3000 by default. You can change this by setting the \`PORT\` environment variable.
 
-## API Endpoint
+## API Endpoints
 
 - **POST /mcp** - Main MCP endpoint for JSON-RPC messages
+- **GET /health** - Health check endpoint (returns 200 OK)
 
 ## Included Examples
 
@@ -69,11 +70,22 @@ ${projectName}/
 ├── src/
 │   ├── server.ts     # FastMCP server definition (tools, prompts, resources)
 │   └── index.ts      # Server startup configuration
+├── Dockerfile        # Multi-stage Docker build
 ├── package.json
 ├── tsconfig.json
 └── README.md
 \`\`\`
 
+## Deployment
+
+### Docker
+
+Build and run the Docker container:
+
+\`\`\`bash
+docker build -t ${projectName} .
+docker run -p 3000:3000 ${projectName}
+\`\`\`
 ## Customization
 
 - Add new tools, prompts, and resources in \`src/server.ts\`

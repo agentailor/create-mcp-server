@@ -15,6 +15,11 @@ create-mcp-server/
 │       │   ├── gitignore.ts        # .gitignore template
 │       │   ├── env.example.ts      # .env.example template
 │       │   └── templates.test.ts   # Tests for common templates
+│       ├── deployment/             # Deployment configuration templates
+│       │   ├── dockerfile.ts       # Dockerfile template
+│       │   ├── dockerignore.ts     # .dockerignore template
+│       │   ├── index.ts            # Barrel exports
+│       │   └── templates.test.ts   # Tests for deployment templates
 │       ├── sdk/                    # Official MCP SDK templates
 │       │   ├── stateless/          # Stateless HTTP template
 │       │   │   ├── server.ts       # MCP server definition template
@@ -141,9 +146,29 @@ Generated project structure (same for all templates, +auth.ts when OAuth enabled
 │   ├── server.ts     # MCP server with tools/prompts/resources
 │   ├── index.ts      # Server startup configuration
 │   └── auth.ts       # OAuth middleware (SDK stateful + OAuth only)
+├── Dockerfile        # Multi-stage Docker build
+├── .dockerignore     # Docker ignore file
 ├── package.json
 ├── tsconfig.json
 ├── .gitignore
 ├── .env.example
 └── README.md
 ```
+
+## Deployment
+
+All generated projects include deployment configuration by default:
+
+### Dockerfile
+
+Multi-stage build for production:
+- Uses Node 20 Alpine as base image
+- Builds TypeScript in builder stage
+- Copies only production dependencies and dist to final image
+- Exposes port 3000
+
+### Health Check Endpoint
+
+All templates include a `GET /health` endpoint:
+- SDK templates: Express route added in `index.ts`
+- FastMCP: Built-in health check support (enabled by default with httpStream transport)

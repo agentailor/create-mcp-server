@@ -24,7 +24,10 @@ import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/
 import { isInitializeRequest } from '@modelcontextprotocol/sdk/types.js';
 import { getServer } from './server.js';`;
 
-  const appSetup = `const app = createMcpExpressApp();`;
+  const appSetup = `const app = createMcpExpressApp();
+
+// Health check endpoint for container orchestration
+app.get('/health', (_, res) => res.sendStatus(200));`;
 
   const postRoute = withOAuth
     ? `app.post('/mcp', authMiddleware, async (req: Request, res: Response) => {`

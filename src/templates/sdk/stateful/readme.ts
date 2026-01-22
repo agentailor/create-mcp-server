@@ -70,6 +70,7 @@ ${projectName}/
 │   ├── server.ts     # MCP server definition (tools, prompts, resources)
 │   ├── index.ts      # Express app and stateful HTTP transport setup
 │   └── auth.ts       # OAuth configuration and middleware
+├── Dockerfile        # Multi-stage Docker build
 ├── package.json
 ├── tsconfig.json
 └── README.md
@@ -79,10 +80,24 @@ ${projectName}/
 ├── src/
 │   ├── server.ts     # MCP server definition (tools, prompts, resources)
 │   └── index.ts      # Express app and stateful HTTP transport setup
+├── Dockerfile        # Multi-stage Docker build
 ├── package.json
 ├── tsconfig.json
 └── README.md
 \`\`\``;
+
+  const deploymentSection = `
+## Deployment
+
+### Docker
+
+Build and run the Docker container:
+
+\`\`\`bash
+docker build -t ${projectName} .
+docker run -p 3000:3000 ${projectName}
+\`\`\`
+`;
 
   const customizationOAuthNote = withOAuth
     ? '\n- Configure OAuth scopes and token verification in `src/auth.ts`'
@@ -121,6 +136,7 @@ ${oauthSection}
   - Requires \`mcp-session-id\` header${apiEndpointsOAuthNote}
 - **DELETE /mcp** - Terminate a session
   - Requires \`mcp-session-id\` header${apiEndpointsOAuthNote}
+- **GET /health** - Health check endpoint (returns 200 OK)
 
 ## Session Management
 
@@ -153,6 +169,7 @@ This server comes with example implementations to help you get started:
 ## Project Structure
 
 ${projectStructure}
+${deploymentSection}
 
 ## Customization
 
