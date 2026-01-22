@@ -15,6 +15,7 @@ npx @agentailor/create-mcp-server
 - **Optional OAuth** — OIDC-compliant authentication (SDK only) ([setup guide](docs/oauth-setup.md))
 - **Package manager choice** — npm, pnpm, or yarn
 - **TypeScript ready** — ready to customize
+- **Docker ready** — production Dockerfile included
 - **MCP Inspector** — built-in debugging with `npm run inspect`
 
 ## Frameworks
@@ -67,6 +68,7 @@ my-mcp-server/
 │   ├── server.ts     # MCP server (tools, prompts, resources)
 │   ├── index.ts      # Express app and transport setup
 │   └── auth.ts       # OAuth middleware (if enabled)
+├── Dockerfile        # Production-ready Docker build
 ├── package.json
 ├── tsconfig.json
 ├── .gitignore

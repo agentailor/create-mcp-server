@@ -30,6 +30,7 @@ import {
   getIndexTemplate as getFastMCPIndexTemplate,
   getReadmeTemplate as getFastMCPReadmeTemplate,
 } from './templates/fastmcp/index.js';
+import { getDockerfileTemplate, getDockerignoreTemplate } from './templates/deployment/index.js';
 
 type TemplateType = 'stateless' | 'stateful';
 
@@ -249,6 +250,12 @@ async function main() {
       writeFile(join(projectPath, 'tsconfig.json'), getTsconfigTemplate()),
       writeFile(join(projectPath, '.gitignore'), getGitignoreTemplate()),
       writeFile(join(projectPath, '.env.example'), getEnvExampleTemplate(templateOptions))
+    );
+
+    // Deployment files for all templates
+    filesToWrite.push(
+      writeFile(join(projectPath, 'Dockerfile'), getDockerfileTemplate(templateOptions)),
+      writeFile(join(projectPath, '.dockerignore'), getDockerignoreTemplate())
     );
 
     // Write all template files

@@ -11,6 +11,9 @@ import { getServer } from './server.js';
 
 const app = createMcpExpressApp();
 
+// Health check endpoint for container orchestration
+app.get('/health', (_, res) => res.sendStatus(200));
+
 app.post('/mcp', async (req: Request, res: Response) => {
   const server = getServer();
   try {
