@@ -21,6 +21,12 @@ describe('common templates', () => {
       expect(pkg.dependencies['express']).toBeDefined();
     });
 
+    it('should include dotenv for SDK', () => {
+      const template = getPackageJsonTemplate(projectName);
+      const pkg = JSON.parse(template);
+      expect(pkg.dependencies['dotenv']).toBeDefined();
+    });
+
     it('should use FastMCP package when framework is fastmcp', () => {
       const template = getPackageJsonTemplate(projectName, { framework: 'fastmcp' });
       const pkg = JSON.parse(template);
@@ -29,10 +35,15 @@ describe('common templates', () => {
       expect(pkg.dependencies['express']).toBeUndefined();
     });
 
-    it('should include OAuth dependencies when withOAuth is true for SDK', () => {
-      const template = getPackageJsonTemplate(projectName, { framework: 'sdk', withOAuth: true });
+    it('should include dotenv for FastMCP', () => {
+      const template = getPackageJsonTemplate(projectName, { framework: 'fastmcp' });
       const pkg = JSON.parse(template);
       expect(pkg.dependencies['dotenv']).toBeDefined();
+    });
+
+    it('should include jose dependency when withOAuth is true for SDK', () => {
+      const template = getPackageJsonTemplate(projectName, { framework: 'sdk', withOAuth: true });
+      const pkg = JSON.parse(template);
       expect(pkg.dependencies['jose']).toBeDefined();
     });
 

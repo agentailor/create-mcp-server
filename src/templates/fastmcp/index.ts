@@ -6,7 +6,9 @@ export function getIndexTemplate(options?: FastMCPTemplateOptions): string {
 
   const statelessConfig = stateless ? '\n    stateless: true,' : '';
 
-  return `import { server } from './server.js';
+  return `
+  import 'dotenv/config';
+  import { server } from './server.js';
 
 const PORT = Number(process.env.PORT) || 3000;
 

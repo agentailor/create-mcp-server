@@ -13,14 +13,17 @@ export function getPackageJsonTemplate(
   const commonDevDependencies = {
     typescript: '^5.9.3',
     '@modelcontextprotocol/inspector': '^0.18.0',
+    '@types/node': '^25.0.3',
   };
   const zodDependency = { zod: '^4.3.5' };
+  const dotEnvDependency = { dotenv: '^17.2.3' };
 
   if (framework === 'fastmcp') {
     // FastMCP dependencies - simpler setup
     dependencies = {
       fastmcp: '^3.26.8',
       ...zodDependency,
+      ...dotEnvDependency,
     };
 
     devDependencies = {
@@ -32,16 +35,15 @@ export function getPackageJsonTemplate(
       '@modelcontextprotocol/sdk': '^1.25.1',
       express: '^5.2.1',
       ...zodDependency,
+      ...dotEnvDependency,
     };
 
     if (withOAuth) {
-      dependencies['dotenv'] = '^17.2.3';
       dependencies['jose'] = '^6.1.3';
     }
 
     devDependencies = {
       '@types/express': '^5.0.6',
-      '@types/node': '^25.0.3',
       ...commonDevDependencies,
     };
   }
