@@ -4,7 +4,8 @@ import type { SdkTemplateOptions } from '../../common/types.js';
 // Options parameter added for type consistency with stateful template (OAuth not supported in stateless)
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function getIndexTemplate(options?: SdkTemplateOptions): string {
-  return `import { type Request, type Response } from 'express';
+  return `import 'dotenv/config';
+  import { type Request, type Response } from 'express';
 import { createMcpExpressApp } from '@modelcontextprotocol/sdk/server/express.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { getServer } from './server.js';

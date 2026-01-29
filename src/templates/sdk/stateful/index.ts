@@ -5,7 +5,8 @@ export function getIndexTemplate(options?: SdkTemplateOptions): string {
   const withOAuth = options?.withOAuth ?? false;
 
   const imports = withOAuth
-    ? `import { type Request, type Response } from 'express';
+    ? `import 'dotenv/config'; 
+    import { type Request, type Response } from 'express';
 import { randomUUID } from 'node:crypto';
 import { createMcpExpressApp } from '@modelcontextprotocol/sdk/server/express.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
