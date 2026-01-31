@@ -4,8 +4,47 @@ Scaffold production-ready MCP servers in seconds.
 
 ## Quick Start
 
+**Interactive mode** (guided prompts):
+
 ```bash
 npx @agentailor/create-mcp-server
+```
+
+**CLI mode** (all options via arguments):
+
+```bash
+npx @agentailor/create-mcp-server --name=my-server
+```
+
+## CLI Options
+
+| Option | Short | Default | Description |
+|--------|-------|---------|-------------|
+| `--name` | `-n` | — | Project name (required in CLI mode) |
+| `--package-manager` | `-p` | `npm` | Package manager: npm, pnpm, yarn |
+| `--framework` | `-f` | `sdk` | Framework: sdk, fastmcp |
+| `--template` | `-t` | `stateless` | Server mode: stateless, stateful |
+| `--oauth` | — | `false` | Enable OAuth (sdk+stateful only) |
+| `--no-git` | — | `false` | Skip git initialization |
+| `--help` | `-h` | — | Show help |
+| `--version` | `-V` | — | Show version |
+
+**Examples:**
+
+```bash
+# Minimal - uses all defaults
+npx @agentailor/create-mcp-server --name=my-server
+
+# Full options
+npx @agentailor/create-mcp-server \
+  --name=my-auth-server \
+  --package-manager=pnpm \
+  --framework=sdk \
+  --template=stateful \
+  --oauth
+
+# Short flags
+npx @agentailor/create-mcp-server -n my-server -p yarn -f fastmcp
 ```
 
 ## Features

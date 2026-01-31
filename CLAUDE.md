@@ -8,6 +8,10 @@ A CLI tool to scaffold new MCP (Model Context Protocol) server projects.
 create-mcp-server/
 ├── src/
 │   ├── index.ts                    # CLI entry point
+│   ├── cli.ts                      # CLI argument parsing (Commander.js)
+│   ├── cli.test.ts                 # Tests for CLI argument parsing
+│   ├── interactive.ts              # Interactive prompt flow (prompts library)
+│   ├── project-generator.ts        # Shared project generation logic
 │   └── templates/
 │       ├── common/                 # Shared template files
 │       │   ├── package.json.ts     # package.json template (framework-aware)
@@ -56,8 +60,12 @@ npm install
 # Build
 npm run build
 
-# Test locally
+# Test locally (interactive mode)
 node dist/index.js
+
+# Test locally (CLI mode)
+node dist/index.js --name=test-server
+node dist/index.js --name=test-server --package-manager=pnpm --framework=fastmcp
 
 # Run tests
 npm test
@@ -77,6 +85,32 @@ npm run format:check
 ```bash
 npm publish --access public
 ```
+
+## CLI Modes
+
+The CLI supports two modes:
+
+### Interactive Mode (default)
+When run without arguments, prompts the user for all options:
+```bash
+npx @agentailor/create-mcp-server
+```
+
+### CLI Mode
+When any `--arg` is provided, all options must be specified via arguments (or use defaults):
+```bash
+npx @agentailor/create-mcp-server --name=my-server [options]
+```
+
+**CLI Options:**
+| Option | Short | Default | Values |
+|--------|-------|---------|--------|
+| `--name` | `-n` | (required) | alphanumeric, hyphens, underscores |
+| `--package-manager` | `-p` | `npm` | npm, pnpm, yarn |
+| `--framework` | `-f` | `sdk` | sdk, fastmcp |
+| `--template` | `-t` | `stateless` | stateless, stateful |
+| `--oauth` | — | `false` | flag (sdk+stateful only) |
+| `--no-git` | — | `false` | flag |
 
 ## Frameworks
 
