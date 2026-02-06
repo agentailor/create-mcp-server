@@ -119,6 +119,16 @@ my-mcp-server/
 - `npm run dev` — build and start the server
 - `npm run inspect` — open MCP Inspector (update URL in `package.json` if needed)
 
+## Need help building MCP servers or agent infrastructure?
+
+I help teams design and ship production-ready AI agent systems (MCP, LangGraph, RAG, memory, performance).
+
+If you’re building something serious on top of this:
+
+→ [DM me on LinkedIn](https://www.linkedin.com/in/ali-ibrahim-junior/)
+
+Happy to jump on a short call.
+
 ## What is MCP?
 
 The [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) is an open protocol that enables AI assistants to interact with external tools, data sources, and services.
