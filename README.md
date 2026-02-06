@@ -1,5 +1,12 @@
 # @agentailor/create-mcp-server
 
+[![npm version](https://img.shields.io/npm/v/@agentailor/create-mcp-server.svg)](https://www.npmjs.com/package/@agentailor/create-mcp-server)
+[![Test](https://github.com/agentailor/create-mcp-server/actions/workflows/test.yml/badge.svg)](https://github.com/agentailor/create-mcp-server/actions/workflows/test.yml)
+[![npm downloads](https://img.shields.io/npm/dt/@agentailor/create-mcp-server.svg)](https://www.npmjs.com/package/@agentailor/create-mcp-server)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Node.js Version](https://img.shields.io/node/v/@agentailor/create-mcp-server.svg)](https://nodejs.org/)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/agentailor/create-mcp-server/pulls)
+
 Scaffold production-ready MCP servers in seconds.
 
 ## Quick Start
