@@ -126,6 +126,15 @@ my-mcp-server/
 - `npm run dev` — build and start the server
 - `npm run inspect` — open MCP Inspector (update URL in `package.json` if needed)
 
+## Learning Resources
+
+| Guide | Description |
+|-------|-------------|
+| [Create Your First MCP Server in 5 Minutes](https://blog.agentailor.com/posts/create-your-first-mcp-server-in-5-minutes?utm_source=github&utm_medium=readme&utm_campaign=create-mcp-server) | Build your first production-ready MCP server. A complete beginner guide to scaffolding a Fetch MCP server with TypeScript. |
+| [Securing MCP Servers with Keycloak](https://blog.agentailor.com/posts/oauth-for-mcp-servers-practical-guide-keycloak?utm_source=github&utm_medium=readme&utm_campaign=create-mcp-server) | Learn how to secure your MCP servers with OAuth authentication using Keycloak. |
+| [Getting Started with FastMCP](https://blog.agentailor.com/posts/getting-started-with-fastmcp?utm_source=github&utm_medium=readme&utm_campaign=create-mcp-server) | Build MCP servers faster with FastMCP — the TypeScript framework inspired by Python's most popular MCP library. |
+| [OAuth for MCP Clients (Next.js + LangGraph.js)](https://blog.agentailor.com/posts/mcp-client-oauth-nextjs-langgraph?utm_source=github&utm_medium=readme&utm_campaign=create-mcp-server) | Implement OAuth authentication in your MCP client using Next.js and the MCP SDK. |
+
 ## Need help building MCP servers or agent infrastructure?
 
 I help teams design and ship production-ready AI agent systems (MCP, LangGraph, RAG, memory, performance).
