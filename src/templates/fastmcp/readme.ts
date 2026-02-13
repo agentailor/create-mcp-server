@@ -4,10 +4,31 @@ export function getReadmeTemplate(projectName: string, options?: TemplateOptions
   const packageManager = options?.packageManager ?? 'npm';
   const stateless = options?.stateless ?? false;
 
-  const commands: Record<string, { install: string; dev: string; build: string; start: string }> = {
-    npm: { install: 'npm install', dev: 'npm run dev', build: 'npm run build', start: 'npm start' },
-    pnpm: { install: 'pnpm install', dev: 'pnpm dev', build: 'pnpm build', start: 'pnpm start' },
-    yarn: { install: 'yarn', dev: 'yarn dev', build: 'yarn build', start: 'yarn start' },
+  const commands: Record<
+    string,
+    { install: string; dev: string; build: string; start: string; inspect: string }
+  > = {
+    npm: {
+      install: 'npm install',
+      dev: 'npm run dev',
+      build: 'npm run build',
+      start: 'npm start',
+      inspect: 'npm run inspect',
+    },
+    pnpm: {
+      install: 'pnpm install',
+      dev: 'pnpm dev',
+      build: 'pnpm build',
+      start: 'pnpm start',
+      inspect: 'pnpm inspect',
+    },
+    yarn: {
+      install: 'yarn',
+      dev: 'yarn dev',
+      build: 'yarn build',
+      start: 'yarn start',
+      inspect: 'yarn inspect',
+    },
   };
 
   const cmd = commands[packageManager];
@@ -39,6 +60,22 @@ ${cmd.start}
 \`\`\`
 
 The server will start on port 3000 by default. You can change this by setting the \`PORT\` environment variable.
+
+## Testing with MCP Inspector
+
+This project includes [MCP Inspector](https://github.com/modelcontextprotocol/inspector) as a dev dependency for testing and debugging.
+
+First, start the server in one terminal:
+
+\`\`\`bash
+${cmd.dev}
+\`\`\`
+
+Then, in another terminal, launch the inspector:
+
+\`\`\`bash
+${cmd.inspect}
+\`\`\`
 
 ## API Endpoints
 
