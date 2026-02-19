@@ -12,16 +12,16 @@ export function getPackageJsonTemplate(
 
   const commonDevDependencies = {
     typescript: '^5.9.3',
-    '@modelcontextprotocol/inspector': '^0.18.0',
-    '@types/node': '^25.0.3',
+    '@modelcontextprotocol/inspector': '^0.20.0',
+    '@types/node': '^25.3.0',
   };
-  const zodDependency = { zod: '^4.3.5' };
-  const dotEnvDependency = { dotenv: '^17.2.3' };
+  const zodDependency = { zod: '^4.3.6' };
+  const dotEnvDependency = { dotenv: '^17.3.1' };
 
   if (framework === 'fastmcp') {
     // FastMCP dependencies - simpler setup
     dependencies = {
-      fastmcp: '^3.26.8',
+      fastmcp: '^3.33.0',
       ...zodDependency,
       ...dotEnvDependency,
     };
@@ -32,7 +32,7 @@ export function getPackageJsonTemplate(
   } else {
     // Official SDK dependencies
     dependencies = {
-      '@modelcontextprotocol/sdk': '^1.25.1',
+      '@modelcontextprotocol/sdk': '^1.26.0',
       express: '^5.2.1',
       ...zodDependency,
       ...dotEnvDependency,
