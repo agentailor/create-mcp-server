@@ -105,5 +105,20 @@ describe('common templates', () => {
       const template = getEnvExampleTemplate();
       expect(template).toContain('PORT=');
     });
+
+    it('should include ALLOWED_HOSTS hint for SDK framework', () => {
+      const template = getEnvExampleTemplate({ framework: 'sdk' });
+      expect(template).toContain('ALLOWED_HOSTS');
+    });
+
+    it('should include ALLOWED_HOSTS hint by default (no framework specified)', () => {
+      const template = getEnvExampleTemplate();
+      expect(template).toContain('ALLOWED_HOSTS');
+    });
+
+    it('should NOT include ALLOWED_HOSTS for FastMCP framework', () => {
+      const template = getEnvExampleTemplate({ framework: 'fastmcp' });
+      expect(template).not.toContain('ALLOWED_HOSTS');
+    });
   });
 });

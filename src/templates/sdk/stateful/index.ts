@@ -18,14 +18,19 @@ import {
   getOAuthMetadataUrl,
   validateOAuthConfig,
 } from './auth.js';`
-    : `import { type Request, type Response } from 'express';
+    : `import 'dotenv/config';
+import { type Request, type Response } from 'express';
 import { randomUUID } from 'node:crypto';
 import { createMcpExpressApp } from '@modelcontextprotocol/sdk/server/express.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { isInitializeRequest } from '@modelcontextprotocol/sdk/types.js';
 import { getServer } from './server.js';`;
 
-  const appSetup = `const app = createMcpExpressApp();
+  const appSetup = `const allowedHosts = process.env.ALLOWED_HOSTS?.split(',') ?? [];
+
+const app = createMcpExpressApp({
+  allowedHosts: ['localhost', '127.0.0.1', '[::1]', ...allowedHosts],
+});
 
 // Health check endpoint for container orchestration
 app.get('/health', (_, res) => res.sendStatus(200));`;

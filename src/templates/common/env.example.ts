@@ -2,6 +2,14 @@ import type { CommonTemplateOptions } from './types.js';
 
 export function getEnvExampleTemplate(options?: CommonTemplateOptions): string {
   const withOAuth = options?.withOAuth ?? false;
+  const isSdk = options?.framework === 'sdk' || !options?.framework;
+
+  const allowedHostsVar = isSdk
+    ? `
+# Comma-separated list of additional allowed hosts (for deployment behind reverse proxies)
+# ALLOWED_HOSTS=my-server.example.com,my-server.us-central1.run.app
+`
+    : '';
 
   const oauthVars = withOAuth
     ? `
@@ -19,5 +27,5 @@ OAUTH_AUDIENCE=https://your-mcp-server.com
     : '';
 
   return `PORT=3000
-${oauthVars}`;
+${allowedHostsVar}${oauthVars}`;
 }

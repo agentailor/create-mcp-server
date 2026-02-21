@@ -137,7 +137,7 @@ Features:
 - Example tool (`start-notification-stream`)
 - Example resource (`greeting-resource`)
 - TypeScript configuration
-- Environment variable support for PORT
+- Environment variable support for PORT and ALLOWED_HOSTS
 
 #### sdk/stateful
 

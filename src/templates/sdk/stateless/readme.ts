@@ -49,7 +49,7 @@ ${commands.build}
 ${commands.start}
 \`\`\`
 
-The server will start on port 3000 by default. You can change this by setting the \`PORT\` environment variable.
+The server will start on port 3000 by default. You can change this by setting the \`PORT\` environment variable. To allow additional hosts (e.g. when deploying behind a reverse proxy), set \`ALLOWED_HOSTS\` as a comma-separated list.
 
 ## Testing with MCP Inspector
 
