@@ -44,7 +44,7 @@ describe('sdk/stateless templates', () => {
     it('should use createMcpExpressApp', () => {
       const template = getIndexTemplate();
       expect(template).toContain('createMcpExpressApp');
-      expect(template).toContain('const app = createMcpExpressApp()');
+      expect(template).toContain('const app = createMcpExpressApp({');
     });
 
     it('should configure /mcp endpoint', () => {
@@ -56,7 +56,13 @@ describe('sdk/stateless templates', () => {
 
     it('should use PORT from environment variable', () => {
       const template = getIndexTemplate();
-      expect(template).toContain('process.env.PORT || 3000');
+      expect(template).toContain('process.env.PORT');
+    });
+
+    it('should pass allowedHosts to createMcpExpressApp', () => {
+      const template = getIndexTemplate();
+      expect(template).toContain('allowedHosts');
+      expect(template).toContain("ALLOWED_HOSTS?.split(',')");
     });
 
     // Stateless-specific tests
