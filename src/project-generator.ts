@@ -10,6 +10,7 @@ import type {
   SdkTemplateOptions,
   Framework,
   PackageManager,
+  TransportType,
 } from './templates/common/types.js';
 import {
   getServerTemplate as getSdkStatelessServerTemplate,
@@ -27,6 +28,11 @@ import {
   getIndexTemplate as getFastMCPIndexTemplate,
   getReadmeTemplate as getFastMCPReadmeTemplate,
 } from './templates/fastmcp/index.js';
+import {
+  getServerTemplate as getSdkStdioServerTemplate,
+  getIndexTemplate as getSdkStdioIndexTemplate,
+  getReadmeTemplate as getSdkStdioReadmeTemplate,
+} from './templates/sdk/stdio/index.js';
 import { getDockerfileTemplate, getDockerignoreTemplate } from './templates/deployment/index.js';
 import type { TemplateType } from './cli.js';
 
@@ -68,19 +74,29 @@ export interface ProjectConfig {
   projectName: string;
   packageManager: PackageManager;
   framework: Framework;
+  transport: TransportType;
   templateType: TemplateType;
   withOAuth: boolean;
   withGitInit: boolean;
 }
 
 export async function generateProject(config: ProjectConfig): Promise<void> {
-  const { projectName, packageManager, framework, templateType, withOAuth, withGitInit } = config;
-
-  const templateOptions: CommonTemplateOptions = {
-    withOAuth,
+  const {
+    projectName,
     packageManager,
     framework,
-    stateless: templateType === 'stateless',
+    transport,
+    templateType,
+    withOAuth,
+    withGitInit,
+  } = config;
+
+  const templateOptions: CommonTemplateOptions = {
+    withOAuth: transport === 'http' ? withOAuth : false,
+    packageManager,
+    framework,
+    stateless: transport === 'stdio' ? true : templateType === 'stateless',
+    transport,
   };
 
   const projectPath = join(process.cwd(), projectName);
@@ -108,8 +124,18 @@ export async function generateProject(config: ProjectConfig): Promise<void> {
         fastmcpTemplateFunctions.getReadmeTemplate(projectName, templateOptions)
       )
     );
+  } else if (transport === 'stdio') {
+    // SDK stdio templates
+    filesToWrite.push(
+      writeFile(join(srcPath, 'server.ts'), getSdkStdioServerTemplate(projectName)),
+      writeFile(join(srcPath, 'index.ts'), getSdkStdioIndexTemplate(templateOptions)),
+      writeFile(
+        join(projectPath, 'README.md'),
+        getSdkStdioReadmeTemplate(projectName, templateOptions)
+      )
+    );
   } else {
-    // SDK templates
+    // SDK HTTP templates (stateless or stateful)
     const templates = sdkTemplateFunctions[templateType];
     filesToWrite.push(
       writeFile(join(srcPath, 'server.ts'), templates.getServerTemplate(projectName)),
@@ -137,11 +163,13 @@ export async function generateProject(config: ProjectConfig): Promise<void> {
     writeFile(join(projectPath, '.env.example'), getEnvExampleTemplate(templateOptions))
   );
 
-  // Deployment files for all templates
-  filesToWrite.push(
-    writeFile(join(projectPath, 'Dockerfile'), getDockerfileTemplate(templateOptions)),
-    writeFile(join(projectPath, '.dockerignore'), getDockerignoreTemplate())
-  );
+  // Deployment files for HTTP transport only (stdio servers are not HTTP services)
+  if (transport === 'http') {
+    filesToWrite.push(
+      writeFile(join(projectPath, 'Dockerfile'), getDockerfileTemplate(templateOptions)),
+      writeFile(join(projectPath, '.dockerignore'), getDockerignoreTemplate())
+    );
+  }
 
   // Write all template files
   await Promise.all(filesToWrite);
@@ -158,7 +186,7 @@ export async function generateProject(config: ProjectConfig): Promise<void> {
   const commands = packageManagerCommands[packageManager];
   const frameworkName = framework === 'fastmcp' ? 'FastMCP' : 'MCP SDK';
 
-  console.log(`\nCreated ${projectName} with ${frameworkName} at ${projectPath}`);
+  console.log(`\nCreated ${projectName} with ${frameworkName} (${transport}) at ${projectPath}`);
   console.log(`\nNext steps:`);
   console.log(`  cd ${projectName}`);
   console.log(`  ${commands.install}`);

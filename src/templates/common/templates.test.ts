@@ -59,6 +59,35 @@ describe('common templates', () => {
       expect(pkg.devDependencies['@types/express']).toBeDefined();
     });
 
+    it('should NOT include express or @types/express for SDK stdio', () => {
+      const template = getPackageJsonTemplate(projectName, {
+        framework: 'sdk',
+        transport: 'stdio',
+      });
+      const pkg = JSON.parse(template);
+      expect(pkg.dependencies['express']).toBeUndefined();
+      expect(pkg.devDependencies['@types/express']).toBeUndefined();
+      expect(pkg.dependencies['@modelcontextprotocol/sdk']).toBeDefined();
+    });
+
+    it('should use inspect:tools, inspect:prompts, inspect:resources scripts for stdio transport', () => {
+      const template = getPackageJsonTemplate(projectName, {
+        framework: 'sdk',
+        transport: 'stdio',
+      });
+      const pkg = JSON.parse(template);
+      expect(pkg.scripts['inspect:tools']).toContain('--method tools/list');
+      expect(pkg.scripts['inspect:prompts']).toContain('--method prompts/list');
+      expect(pkg.scripts['inspect:resources']).toContain('--method resources/list');
+      expect(pkg.scripts['inspect']).toBeUndefined();
+    });
+
+    it('should use http inspect script for http transport (default)', () => {
+      const template = getPackageJsonTemplate(projectName, { framework: 'sdk', transport: 'http' });
+      const pkg = JSON.parse(template);
+      expect(pkg.scripts.inspect).toContain('http://localhost:3000/mcp');
+    });
+
     it('should include required scripts', () => {
       const template = getPackageJsonTemplate(projectName);
       const pkg = JSON.parse(template);
@@ -118,6 +147,16 @@ describe('common templates', () => {
 
     it('should NOT include ALLOWED_HOSTS for FastMCP framework', () => {
       const template = getEnvExampleTemplate({ framework: 'fastmcp' });
+      expect(template).not.toContain('ALLOWED_HOSTS');
+    });
+
+    it('should NOT include PORT for stdio transport', () => {
+      const template = getEnvExampleTemplate({ transport: 'stdio' });
+      expect(template).not.toContain('PORT=');
+    });
+
+    it('should NOT include ALLOWED_HOSTS for stdio transport', () => {
+      const template = getEnvExampleTemplate({ transport: 'stdio' });
       expect(template).not.toContain('ALLOWED_HOSTS');
     });
   });

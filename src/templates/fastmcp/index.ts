@@ -2,6 +2,17 @@ export type { FastMCPTemplateOptions as TemplateOptions } from '../common/types.
 import type { FastMCPTemplateOptions } from '../common/types.js';
 
 export function getIndexTemplate(options?: FastMCPTemplateOptions): string {
+  const transport = options?.transport ?? 'http';
+
+  if (transport === 'stdio') {
+    return `import { server } from './server.js';
+
+server.start({
+  transportType: "stdio",
+});
+`;
+  }
+
   const stateless = options?.stateless ?? false;
 
   const statelessConfig = stateless ? '\n    stateless: true,' : '';

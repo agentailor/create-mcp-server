@@ -1,5 +1,5 @@
 import { Command, Option, InvalidArgumentError } from 'commander';
-import type { PackageManager, Framework } from './templates/common/types.js';
+import type { PackageManager, Framework, TransportType } from './templates/common/types.js';
 
 export type TemplateType = 'stateless' | 'stateful';
 
@@ -7,6 +7,7 @@ export interface CLIOptions {
   name: string;
   packageManager: PackageManager;
   framework: Framework;
+  transport: TransportType;
   template: TemplateType;
   oauth: boolean;
   git: boolean;
@@ -52,6 +53,7 @@ export function parseArguments(): ParseResult {
         .choices(['stateless', 'stateful'])
         .default('stateless')
     )
+    .option('--stdio', 'Use stdio transport instead of HTTP', false)
     .option('--oauth', 'Enable OAuth authentication (sdk+stateful only)', false)
     .option('--no-git', 'Skip git repository initialization');
 
@@ -78,6 +80,19 @@ export function parseArguments(): ParseResult {
     process.exit(1);
   }
 
+  // Validate stdio constraints
+  if (opts.stdio && opts.oauth) {
+    console.error('\nError: --stdio cannot be combined with --oauth\n');
+    process.exit(1);
+  }
+
+  if (opts.stdio && opts.template === 'stateful') {
+    console.error(
+      '\nError: --template=stateful is not applicable with --stdio (stdio is inherently stateless)\n'
+    );
+    process.exit(1);
+  }
+
   // Validate OAuth constraint
   if (opts.oauth && (opts.framework !== 'sdk' || opts.template !== 'stateful')) {
     console.error('\nError: --oauth is only valid with --framework=sdk and --template=stateful\n');
@@ -90,6 +105,7 @@ export function parseArguments(): ParseResult {
       name: opts.name,
       packageManager: opts.packageManager as PackageManager,
       framework: opts.framework as Framework,
+      transport: (opts.stdio ? 'stdio' : 'http') as TransportType,
       template: opts.template as TemplateType,
       oauth: opts.oauth,
       git: opts.git, // Commander handles --no-git -> git: false

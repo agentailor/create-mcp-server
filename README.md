@@ -30,8 +30,9 @@ npx @agentailor/create-mcp-server --name=my-server
 | `--name` | `-n` | — | Project name (required in CLI mode) |
 | `--package-manager` | `-p` | `npm` | Package manager: npm, pnpm, yarn |
 | `--framework` | `-f` | `sdk` | Framework: sdk, fastmcp |
-| `--template` | `-t` | `stateless` | Server mode: stateless, stateful |
-| `--oauth` | — | `false` | Enable OAuth (sdk+stateful only) |
+| `--stdio` | — | `false` | Use stdio transport (for local clients) |
+| `--template` | `-t` | `stateless` | Server mode: stateless, stateful (HTTP only) |
+| `--oauth` | — | `false` | Enable OAuth (sdk+stateful only, incompatible with --stdio) |
 | `--no-git` | — | `false` | Skip git initialization |
 | `--help` | `-h` | — | Show help |
 | `--version` | `-V` | — | Show version |
@@ -39,10 +40,16 @@ npx @agentailor/create-mcp-server --name=my-server
 **Examples:**
 
 ```bash
-# Minimal - uses all defaults
+# Minimal - uses all defaults (HTTP streamable)
 npx @agentailor/create-mcp-server --name=my-server
 
-# Full options
+# stdio server (for local clients)
+npx @agentailor/create-mcp-server --name=my-server --stdio
+
+# stdio with FastMCP
+npx @agentailor/create-mcp-server --name=my-server --stdio --framework=fastmcp
+
+# Full HTTP options
 npx @agentailor/create-mcp-server \
   --name=my-auth-server \
   --package-manager=pnpm \
@@ -57,11 +64,12 @@ npx @agentailor/create-mcp-server -n my-server -p yarn -f fastmcp
 ## Features
 
 - **Two frameworks** — Official MCP SDK or FastMCP
-- **Two server modes** — stateless or stateful with session management
-- **Optional OAuth** — OIDC-compliant authentication (SDK only) ([setup guide](docs/oauth-setup.md))
+- **Two transport types** — HTTP (streamable) or stdio (for local cllients)
+- **Two HTTP server modes** — stateless or stateful with session management
+- **Optional OAuth** — OIDC-compliant authentication (SDK HTTP only) ([setup guide](docs/oauth-setup.md))
 - **Package manager choice** — npm, pnpm, or yarn
 - **TypeScript ready** — ready to customize
-- **Docker ready** — production Dockerfile included
+- **Docker ready** — production Dockerfile included (HTTP transport)
 - **MCP Inspector** — built-in debugging with `npm run inspect`
 
 ## Frameworks
@@ -93,7 +101,22 @@ server.start({ transportType: "httpStream", httpStream: { port: 3000 } });
 
 Learn more: [FastMCP Documentation](https://github.com/punkpeye/fastmcp)
 
-## Server Modes
+## Transport Types
+
+| Feature | HTTP (Streamable HTTP) | stdio |
+|---------|------------------------|-------|
+| Use case | Remote access, cloud deployment | Local clients (Claude Desktop) |
+| Protocol | HTTP/SSE | stdin/stdout |
+| Session management | ✓ (stateful mode) | — |
+| OAuth support | ✓ (SDK stateful) | — |
+| Docker deployment | ✓ | — |
+| Port configuration | ✓ | — |
+
+**HTTP**: Deploy as an HTTP server accessible remotely. Choose stateless or stateful mode.
+
+**stdio**: Run as a local process. Communicates over stdin/stdout. Ideal for local clients. No HTTP server, no port, no Dockerfile generated.
+
+## Server Modes (HTTP only)
 
 | Feature | Stateless (default) | Stateful |
 |---------|---------------------|----------|

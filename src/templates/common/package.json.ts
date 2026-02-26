@@ -6,6 +6,7 @@ export function getPackageJsonTemplate(
 ): string {
   const withOAuth = options?.withOAuth ?? false;
   const framework = options?.framework ?? 'sdk';
+  const transport = options?.transport ?? 'http';
 
   let dependencies: Record<string, string>;
   let devDependencies: Record<string, string>;
@@ -29,8 +30,19 @@ export function getPackageJsonTemplate(
     devDependencies = {
       ...commonDevDependencies,
     };
+  } else if (transport === 'stdio') {
+    // Official SDK stdio - no express needed
+    dependencies = {
+      '@modelcontextprotocol/sdk': '^1.26.0',
+      ...zodDependency,
+      ...dotEnvDependency,
+    };
+
+    devDependencies = {
+      ...commonDevDependencies,
+    };
   } else {
-    // Official SDK dependencies
+    // Official SDK HTTP dependencies
     dependencies = {
       '@modelcontextprotocol/sdk': '^1.26.0',
       express: '^5.2.1',
@@ -48,6 +60,15 @@ export function getPackageJsonTemplate(
     };
   }
 
+  const inspectScripts =
+    transport === 'stdio'
+      ? {
+          'inspect:tools': 'mcp-inspector --cli node dist/index.js --method tools/list',
+          'inspect:prompts': 'mcp-inspector --cli node dist/index.js --method prompts/list',
+          'inspect:resources': 'mcp-inspector --cli node dist/index.js --method resources/list',
+        }
+      : { inspect: 'mcp-inspector http://localhost:3000/mcp' };
+
   const packageJson = {
     name: projectName,
     version: '0.1.0',
@@ -57,7 +78,7 @@ export function getPackageJsonTemplate(
       build: 'tsc',
       dev: 'tsc && node dist/index.js',
       start: 'node dist/index.js',
-      inspect: 'mcp-inspector http://localhost:3000/mcp',
+      ...inspectScripts,
     },
     dependencies,
     devDependencies,

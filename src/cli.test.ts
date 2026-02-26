@@ -39,6 +39,7 @@ describe('CLI argument parsing', () => {
     const result = parseArguments();
     expect(result.options?.packageManager).toBe('npm');
     expect(result.options?.framework).toBe('sdk');
+    expect(result.options?.transport).toBe('http');
     expect(result.options?.template).toBe('stateless');
     expect(result.options?.oauth).toBe(false);
     expect(result.options?.git).toBe(true);
@@ -60,6 +61,7 @@ describe('CLI argument parsing', () => {
       name: 'test-project',
       packageManager: 'pnpm',
       framework: 'fastmcp',
+      transport: 'http',
       template: 'stateful',
       oauth: false,
       git: false,
@@ -171,5 +173,78 @@ describe('CLI argument parsing', () => {
     const result = parseArguments();
     // No args = interactive mode
     expect(result.mode).toBe('interactive');
+  });
+
+  it('--stdio sets transport to stdio', async () => {
+    process.argv = ['node', 'create-mcp-server', '--name=my-stdio-server', '--stdio'];
+    const { parseArguments } = await import('./cli.js');
+    const result = parseArguments();
+    expect(result.mode).toBe('cli');
+    expect(result.options?.transport).toBe('stdio');
+    expect(result.options?.oauth).toBe(false);
+  });
+
+  it('--stdio with --framework=fastmcp is valid', async () => {
+    process.argv = [
+      'node',
+      'create-mcp-server',
+      '--name=my-server',
+      '--stdio',
+      '--framework=fastmcp',
+    ];
+    const { parseArguments } = await import('./cli.js');
+    const result = parseArguments();
+    expect(result.options?.transport).toBe('stdio');
+    expect(result.options?.framework).toBe('fastmcp');
+  });
+
+  it('exits with error when --stdio combined with --oauth', async () => {
+    process.argv = [
+      'node',
+      'create-mcp-server',
+      '--name=test',
+      '--stdio',
+      '--oauth',
+      '--framework=sdk',
+      '--template=stateful',
+    ];
+
+    let exitCode: number | undefined;
+    process.exit = vi.fn((code) => {
+      exitCode = code as number;
+      throw new Error('process.exit called');
+    }) as never;
+
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const { parseArguments } = await import('./cli.js');
+    expect(() => parseArguments()).toThrow('process.exit called');
+    expect(exitCode).toBe(1);
+    expect(consoleError).toHaveBeenCalledWith(
+      expect.stringContaining('--stdio cannot be combined with --oauth')
+    );
+
+    consoleError.mockRestore();
+  });
+
+  it('exits with error when --stdio combined with --template=stateful', async () => {
+    process.argv = ['node', 'create-mcp-server', '--name=test', '--stdio', '--template=stateful'];
+
+    let exitCode: number | undefined;
+    process.exit = vi.fn((code) => {
+      exitCode = code as number;
+      throw new Error('process.exit called');
+    }) as never;
+
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const { parseArguments } = await import('./cli.js');
+    expect(() => parseArguments()).toThrow('process.exit called');
+    expect(exitCode).toBe(1);
+    expect(consoleError).toHaveBeenCalledWith(
+      expect.stringContaining('--template=stateful is not applicable with --stdio')
+    );
+
+    consoleError.mockRestore();
   });
 });
