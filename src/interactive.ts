@@ -1,5 +1,5 @@
 import prompts from 'prompts';
-import type { PackageManager, Framework } from './templates/common/types.js';
+import type { PackageManager, Framework, TransportType } from './templates/common/types.js';
 import type { TemplateType } from './cli.js';
 import { generateProject } from './project-generator.js';
 
@@ -77,18 +77,22 @@ export async function runInteractiveMode(): Promise<void> {
 
   const framework: Framework = frameworkResponse.framework || 'sdk';
 
-  // Server mode selection
-  const templateTypeResponse = await prompts(
+  // Transport selection
+  const transportResponse = await prompts(
     {
       type: 'select',
-      name: 'templateType',
-      message: 'Server mode:',
+      name: 'transport',
+      message: 'Transport:',
       choices: [
-        { title: 'Stateless', value: 'stateless', description: 'Simple HTTP server' },
         {
-          title: 'Stateful',
-          value: 'stateful',
-          description: 'Session-based server with SSE support',
+          title: 'HTTP (Streamable HTTP)',
+          value: 'http',
+          description: 'Deploy as an HTTP server (recommended for remote access)',
+        },
+        {
+          title: 'stdio',
+          value: 'stdio',
+          description: 'For local use with local clients like Claude Desktop',
         },
       ],
       initial: 0,
@@ -96,11 +100,35 @@ export async function runInteractiveMode(): Promise<void> {
     { onCancel }
   );
 
-  const templateType: TemplateType = templateTypeResponse.templateType || 'stateless';
+  const transport: TransportType = transportResponse.transport || 'http';
 
-  // OAuth prompt - only for SDK stateful template
+  // Server mode selection - only for HTTP transport
+  let templateType: TemplateType = 'stateless';
+  if (transport === 'http') {
+    const templateTypeResponse = await prompts(
+      {
+        type: 'select',
+        name: 'templateType',
+        message: 'Server mode:',
+        choices: [
+          { title: 'Stateless', value: 'stateless', description: 'Simple HTTP server' },
+          {
+            title: 'Stateful',
+            value: 'stateful',
+            description: 'Session-based server with SSE support',
+          },
+        ],
+        initial: 0,
+      },
+      { onCancel }
+    );
+
+    templateType = templateTypeResponse.templateType || 'stateless';
+  }
+
+  // OAuth prompt - only for SDK stateful HTTP template
   let withOAuth = false;
-  if (framework === 'sdk' && templateType === 'stateful') {
+  if (transport === 'http' && framework === 'sdk' && templateType === 'stateful') {
     const oauthResponse = await prompts(
       {
         type: 'confirm',
@@ -129,6 +157,7 @@ export async function runInteractiveMode(): Promise<void> {
     projectName,
     packageManager,
     framework,
+    transport,
     templateType,
     withOAuth,
     withGitInit,

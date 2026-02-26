@@ -1,5 +1,6 @@
 export type PackageManager = 'npm' | 'pnpm' | 'yarn';
 export type Framework = 'sdk' | 'fastmcp';
+export type TransportType = 'http' | 'stdio';
 
 /**
  * Base template options shared across all templates
@@ -13,6 +14,7 @@ export interface BaseTemplateOptions {
  */
 export interface SdkTemplateOptions extends BaseTemplateOptions {
   withOAuth?: boolean;
+  transport?: TransportType;
 }
 
 /**
@@ -20,6 +22,7 @@ export interface SdkTemplateOptions extends BaseTemplateOptions {
  */
 export interface FastMCPTemplateOptions extends BaseTemplateOptions {
   stateless?: boolean;
+  transport?: TransportType;
 }
 
 /**
@@ -30,4 +33,5 @@ export interface CommonTemplateOptions extends BaseTemplateOptions {
   withOAuth?: boolean;
   framework?: Framework;
   stateless?: boolean;
+  transport?: TransportType;
 }

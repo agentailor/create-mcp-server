@@ -66,6 +66,13 @@ describe('fastmcp templates', () => {
       const template = getIndexTemplate({ stateless: true });
       expect(template).toContain('stateless: true');
     });
+
+    it('should use stdio transportType when transport is stdio', () => {
+      const template = getIndexTemplate({ transport: 'stdio' });
+      expect(template).toContain('transportType: "stdio"');
+      expect(template).not.toContain('httpStream');
+      expect(template).not.toContain('PORT');
+    });
   });
 
   describe('getReadmeTemplate', () => {
@@ -100,6 +107,25 @@ describe('fastmcp templates', () => {
     it('should describe stateless mode when specified', () => {
       const template = getReadmeTemplate(projectName, { stateless: true });
       expect(template).toContain('stateless');
+    });
+
+    it('should NOT include HTTP endpoint section for stdio', () => {
+      const template = getReadmeTemplate(projectName, { transport: 'stdio' });
+      expect(template).not.toContain('POST /mcp');
+      expect(template).not.toContain('GET /health');
+    });
+
+    it('should include MCP Inspector CLI commands for stdio', () => {
+      const template = getReadmeTemplate(projectName, { transport: 'stdio' });
+      expect(template).toContain('inspect:tools');
+      expect(template).toContain('inspect:prompts');
+      expect(template).toContain('inspect:resources');
+    });
+
+    it('should NOT include Docker section for stdio', () => {
+      const template = getReadmeTemplate(projectName, { transport: 'stdio' });
+      expect(template).not.toContain('docker build');
+      expect(template).not.toContain('Dockerfile');
     });
   });
 });

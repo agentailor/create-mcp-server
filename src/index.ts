@@ -15,6 +15,7 @@ async function main() {
       projectName: options!.name,
       packageManager: options!.packageManager,
       framework: options!.framework,
+      transport: options!.transport,
       templateType: options!.template,
       withOAuth: options!.oauth,
       withGitInit: options!.git,

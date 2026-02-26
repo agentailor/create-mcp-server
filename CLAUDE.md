@@ -30,12 +30,17 @@ create-mcp-server/
 │       │   │   ├── index.ts        # Barrel export + getIndexTemplate
 │       │   │   ├── readme.ts       # README.md template
 │       │   │   └── templates.test.ts
-│       │   └── stateful/           # Stateful HTTP template with OAuth option
+│       │   ├── stateful/           # Stateful HTTP template with OAuth option
+│       │   │   ├── server.ts       # Re-exports from stateless
+│       │   │   ├── index.ts        # Barrel export + getIndexTemplate
+│       │   │   ├── readme.ts       # README.md template
+│       │   │   ├── auth.ts         # OAuth authentication template
+│       │   │   ├── auth.test.ts    # Tests for auth template
+│       │   │   └── templates.test.ts
+│       │   └── stdio/              # stdio transport template
 │       │       ├── server.ts       # Re-exports from stateless
-│       │       ├── index.ts        # Barrel export + getIndexTemplate
-│       │       ├── readme.ts       # README.md template
-│       │       ├── auth.ts         # OAuth authentication template
-│       │       ├── auth.test.ts    # Tests for auth template
+│       │       ├── index.ts        # Barrel export + getIndexTemplate (StdioServerTransport)
+│       │       ├── readme.ts       # README.md template (for local clients)
 │       │       └── templates.test.ts
 │       └── fastmcp/                # FastMCP templates
 │           ├── server.ts           # FastMCP server definition template
@@ -108,8 +113,9 @@ npx @agentailor/create-mcp-server --name=my-server [options]
 | `--name` | `-n` | (required) | alphanumeric, hyphens, underscores |
 | `--package-manager` | `-p` | `npm` | npm, pnpm, yarn |
 | `--framework` | `-f` | `sdk` | sdk, fastmcp |
-| `--template` | `-t` | `stateless` | stateless, stateful |
-| `--oauth` | — | `false` | flag (sdk+stateful only) |
+| `--stdio` | — | `false` | flag; uses stdio transport instead of HTTP |
+| `--template` | `-t` | `stateless` | stateless, stateful (HTTP only, ignored with --stdio) |
+| `--oauth` | — | `false` | flag (sdk+stateful only, incompatible with --stdio) |
 | `--no-git` | — | `false` | flag |
 
 ## Frameworks
@@ -163,17 +169,28 @@ When OAuth is enabled for the stateful template:
 - Server startup validation ensures OAuth provider is reachable
 - See [docs/oauth-setup.md](docs/oauth-setup.md) for provider-specific setup instructions
 
+#### sdk/stdio
+
+A stdio MCP server using the official SDK. Uses `StdioServerTransport` — for local clients like Claude Desktop.
+
+Features:
+- `StdioServerTransport` (no HTTP server, no Express)
+- Same example prompt, tool, and resource as stateless
+- No PORT/ALLOWED_HOSTS environment variables
+- No Dockerfile generated (stdio servers are run directly)
+- MCP Inspector CLI mode (`mcp-inspector --cli node dist/index.js`)
+
 ### FastMCP Templates
 
-A single template that supports both stateless and stateful modes via the `stateless` configuration option. Uses the FastMCP framework for simpler server setup.
+A single template that supports both stateless and stateful HTTP modes via the `stateless` configuration option, plus stdio transport. Uses the FastMCP framework for simpler server setup.
 
 Features:
 - Declarative tool/prompt/resource registration
-- Built-in HTTP server (no Express setup required)
-- Supports both stateless and stateful modes via config
+- Built-in HTTP server (no Express setup required) or stdio transport
+- Supports stateless/stateful HTTP modes and stdio via config
 - Example prompt, tool, and resource
 
-Generated project structure (same for all templates, +auth.ts when OAuth enabled for SDK stateful):
+Generated project structure for HTTP templates (+auth.ts when OAuth enabled for SDK stateful):
 ```
 {project-name}/
 ├── src/
@@ -182,6 +199,19 @@ Generated project structure (same for all templates, +auth.ts when OAuth enabled
 │   └── auth.ts       # OAuth middleware (SDK stateful + OAuth only)
 ├── Dockerfile        # Multi-stage Docker build
 ├── .dockerignore     # Docker ignore file
+├── package.json
+├── tsconfig.json
+├── .gitignore
+├── .env.example
+└── README.md
+```
+
+Generated project structure for stdio templates (no Dockerfile):
+```
+{project-name}/
+├── src/
+│   ├── server.ts     # MCP server with tools/prompts/resources
+│   └── index.ts      # stdio transport startup
 ├── package.json
 ├── tsconfig.json
 ├── .gitignore

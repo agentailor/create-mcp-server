@@ -1,6 +1,12 @@
 import type { CommonTemplateOptions } from './types.js';
 
 export function getEnvExampleTemplate(options?: CommonTemplateOptions): string {
+  const transport = options?.transport ?? 'http';
+
+  if (transport === 'stdio') {
+    return `# No environment variables required for stdio transport\n`;
+  }
+
   const withOAuth = options?.withOAuth ?? false;
   const isSdk = options?.framework === 'sdk' || !options?.framework;
 
