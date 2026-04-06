@@ -12,17 +12,17 @@ export function getPackageJsonTemplate(
   let devDependencies: Record<string, string>;
 
   const commonDevDependencies = {
-    typescript: '^5.9.3',
-    '@modelcontextprotocol/inspector': '^0.20.0',
-    '@types/node': '^25.3.0',
+    typescript: '^6.0.2',
+    '@modelcontextprotocol/inspector': '^0.21.1',
+    '@types/node': '^25.5.2',
   };
   const zodDependency = { zod: '^4.3.6' };
-  const dotEnvDependency = { dotenv: '^17.3.1' };
+  const dotEnvDependency = { dotenv: '^17.4.1' };
 
   if (framework === 'fastmcp') {
     // FastMCP dependencies - simpler setup
     dependencies = {
-      fastmcp: '^3.33.0',
+      fastmcp: '^3.35.0',
       ...zodDependency,
       ...dotEnvDependency,
     };
@@ -33,7 +33,7 @@ export function getPackageJsonTemplate(
   } else if (transport === 'stdio') {
     // Official SDK stdio - no express needed
     dependencies = {
-      '@modelcontextprotocol/sdk': '^1.26.0',
+      '@modelcontextprotocol/sdk': '^1.29.0',
       ...zodDependency,
       ...dotEnvDependency,
     };
@@ -44,14 +44,14 @@ export function getPackageJsonTemplate(
   } else {
     // Official SDK HTTP dependencies
     dependencies = {
-      '@modelcontextprotocol/sdk': '^1.26.0',
+      '@modelcontextprotocol/sdk': '^1.29.0',
       express: '^5.2.1',
       ...zodDependency,
       ...dotEnvDependency,
     };
 
     if (withOAuth) {
-      dependencies['jose'] = '^6.1.3';
+      dependencies['jose'] = '^6.2.2';
     }
 
     devDependencies = {
