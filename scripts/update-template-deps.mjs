@@ -3,9 +3,12 @@
  * Fetches the latest versions of all template dependencies from npm and
  * updates the hardcoded version strings in src/templates/common/package.json.ts.
  *
- * Usage:
+ * Usage via npm scripts:
+ *   npm run update-template-deps      # update in place
+ *   npm run update-template-deps:dry  # print changes only, no 
+ * Usage via direct node command:
  *   node scripts/update-template-deps.mjs           # update in place
- *   node scripts/update-template-deps.mjs --dry-run # print changes only
+ *   node scripts/update-template-deps.mjs --dry-run # print changes only 
  */
 
 import { execSync } from 'child_process';
