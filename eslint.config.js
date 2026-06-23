@@ -7,6 +7,7 @@ export default tseslint.config(
   ...tseslint.configs.recommended,
   eslintConfigPrettier,
   {
+    name: 'create-mcp-server/ignores',
     ignores: ['dist/', 'node_modules/', 'official-examples/', 'generated/'],
   }
 );
