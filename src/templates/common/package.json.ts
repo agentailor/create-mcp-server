@@ -12,17 +12,17 @@ export function getPackageJsonTemplate(
   let devDependencies: Record<string, string>;
 
   const commonDevDependencies = {
-    typescript: '^6.0.2',
-    '@modelcontextprotocol/inspector': '^0.21.1',
-    '@types/node': '^25.5.2',
+    typescript: '^6.0.3',
+    '@modelcontextprotocol/inspector': '^0.22.0',
+    '@types/node': '^26.0.0',
   };
-  const zodDependency = { zod: '^4.3.6' };
-  const dotEnvDependency = { dotenv: '^17.4.1' };
+  const zodDependency = { zod: '^4.4.3' };
+  const dotEnvDependency = { dotenv: '^17.4.2' };
 
   if (framework === 'fastmcp') {
     // FastMCP dependencies - simpler setup
     dependencies = {
-      fastmcp: '^3.35.0',
+      fastmcp: '^4.3.2',
       ...zodDependency,
       ...dotEnvDependency,
     };
@@ -51,7 +51,7 @@ export function getPackageJsonTemplate(
     };
 
     if (withOAuth) {
-      dependencies['jose'] = '^6.2.2';
+      dependencies['jose'] = '^6.2.3';
     }
 
     devDependencies = {
