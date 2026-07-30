@@ -7,7 +7,6 @@ import { getGitignoreTemplate } from './templates/common/gitignore.js';
 import { getEnvExampleTemplate } from './templates/common/env.example.js';
 import type {
   CommonTemplateOptions,
-  SdkTemplateOptions,
   Framework,
   PackageManager,
   TransportType,
@@ -17,12 +16,7 @@ import {
   getIndexTemplate as getSdkStatelessIndexTemplate,
   getReadmeTemplate as getSdkStatelessReadmeTemplate,
 } from './templates/sdk/stateless/index.js';
-import {
-  getServerTemplate as getSdkStatefulServerTemplate,
-  getIndexTemplate as getSdkStatefulIndexTemplate,
-  getReadmeTemplate as getSdkStatefulReadmeTemplate,
-  getAuthTemplate as getSdkAuthTemplate,
-} from './templates/sdk/stateful/index.js';
+import { getAuthTemplate as getSdkAuthTemplate } from './templates/sdk/stateful/index.js';
 import {
   getServerTemplate as getFastMCPServerTemplate,
   getIndexTemplate as getFastMCPIndexTemplate,
@@ -36,26 +30,13 @@ import {
 import { getDockerfileTemplate, getDockerignoreTemplate } from './templates/deployment/index.js';
 import type { TemplateType } from './cli.js';
 
-const sdkTemplateFunctions: Record<
-  TemplateType,
-  {
-    getServerTemplate: (projectName: string) => string;
-    getIndexTemplate: (options?: SdkTemplateOptions) => string;
-    getReadmeTemplate: (projectName: string, options?: SdkTemplateOptions) => string;
-    getAuthTemplate?: () => string;
-  }
-> = {
-  stateless: {
-    getServerTemplate: getSdkStatelessServerTemplate,
-    getIndexTemplate: getSdkStatelessIndexTemplate,
-    getReadmeTemplate: getSdkStatelessReadmeTemplate,
-  },
-  stateful: {
-    getServerTemplate: getSdkStatefulServerTemplate,
-    getIndexTemplate: getSdkStatefulIndexTemplate,
-    getReadmeTemplate: getSdkStatefulReadmeTemplate,
-    getAuthTemplate: getSdkAuthTemplate,
-  },
+// Auth is keyed off `withOAuth`, never off the template type - see
+// "Why stateless and stateful are identical" in CLAUDE.md.
+const sdkHttpTemplateFunctions = {
+  getServerTemplate: getSdkStatelessServerTemplate,
+  getIndexTemplate: getSdkStatelessIndexTemplate,
+  getReadmeTemplate: getSdkStatelessReadmeTemplate,
+  getAuthTemplate: getSdkAuthTemplate,
 };
 
 const fastmcpTemplateFunctions = {
@@ -135,8 +116,7 @@ export async function generateProject(config: ProjectConfig): Promise<void> {
       )
     );
   } else {
-    // SDK HTTP templates (stateless or stateful)
-    const templates = sdkTemplateFunctions[templateType];
+    const templates = sdkHttpTemplateFunctions;
     filesToWrite.push(
       writeFile(join(srcPath, 'server.ts'), templates.getServerTemplate(projectName)),
       writeFile(join(srcPath, 'index.ts'), templates.getIndexTemplate(templateOptions)),
@@ -146,8 +126,7 @@ export async function generateProject(config: ProjectConfig): Promise<void> {
       )
     );
 
-    // Conditionally add auth.ts for OAuth-enabled stateful template
-    if (withOAuth && templates.getAuthTemplate) {
+    if (withOAuth) {
       filesToWrite.push(writeFile(join(srcPath, 'auth.ts'), templates.getAuthTemplate()));
     }
   }

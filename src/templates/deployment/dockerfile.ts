@@ -38,7 +38,7 @@ export function getDockerfileTemplate(options?: BaseTemplateOptions): string {
   const setupStep = config.setup ? `\n${config.setup}\n` : '';
 
   return `# Multi-stage build for production
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 ${setupStep}
@@ -55,7 +55,7 @@ COPY . .
 RUN ${config.build}
 
 # Production stage
-FROM node:20-alpine AS production
+FROM node:22-alpine AS production
 
 WORKDIR /app
 ${setupStep}

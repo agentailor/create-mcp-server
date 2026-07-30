@@ -105,6 +105,17 @@ describe('CLI argument parsing', () => {
     expect(result.options?.template).toBe('stateful');
   });
 
+  // SDK v2 collapsed the stateless/stateful distinction, and OAuth is
+  // orthogonal to sessions, so --oauth no longer requires --template=stateful.
+  it('parses oauth flag correctly for sdk without --template=stateful', async () => {
+    process.argv = ['node', 'create-mcp-server', '--name=my-auth-server', '--oauth'];
+    const { parseArguments } = await import('./cli.js');
+    const result = parseArguments();
+    expect(result.options?.oauth).toBe(true);
+    expect(result.options?.framework).toBe('sdk');
+    expect(result.options?.template).toBe('stateless');
+  });
+
   it('exits with error when --name is missing in CLI mode', async () => {
     process.argv = ['node', 'create-mcp-server', '--package-manager=npm'];
 
@@ -126,7 +137,7 @@ describe('CLI argument parsing', () => {
     consoleError.mockRestore();
   });
 
-  it('exits with error when --oauth used without sdk+stateful', async () => {
+  it('exits with error when --oauth used without sdk framework', async () => {
     process.argv = ['node', 'create-mcp-server', '--name=test', '--oauth', '--framework=fastmcp'];
 
     let exitCode: number | undefined;
@@ -141,7 +152,7 @@ describe('CLI argument parsing', () => {
     expect(() => parseArguments()).toThrow('process.exit called');
     expect(exitCode).toBe(1);
     expect(consoleError).toHaveBeenCalledWith(
-      expect.stringContaining('--oauth is only valid with --framework=sdk and --template=stateful')
+      expect.stringContaining('--oauth is only valid with --framework=sdk')
     );
 
     consoleError.mockRestore();

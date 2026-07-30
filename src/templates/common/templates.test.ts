@@ -14,11 +14,21 @@ describe('common templates', () => {
       expect(pkg.name).toBe(projectName);
     });
 
-    it('should use SDK package by default', () => {
+    it('should use SDK v2 packages by default', () => {
       const template = getPackageJsonTemplate(projectName);
       const pkg = JSON.parse(template);
-      expect(pkg.dependencies['@modelcontextprotocol/sdk']).toBeDefined();
+      expect(pkg.dependencies['@modelcontextprotocol/server']).toBeDefined();
+      expect(pkg.dependencies['@modelcontextprotocol/express']).toBeDefined();
+      expect(pkg.dependencies['@modelcontextprotocol/node']).toBeDefined();
       expect(pkg.dependencies['express']).toBeDefined();
+      // v1 monolith must not be pulled into SDK projects
+      expect(pkg.dependencies['@modelcontextprotocol/sdk']).toBeUndefined();
+    });
+
+    it('should include hono for SDK HTTP (peer dependency of @modelcontextprotocol/node)', () => {
+      const template = getPackageJsonTemplate(projectName);
+      const pkg = JSON.parse(template);
+      expect(pkg.dependencies['hono']).toBeDefined();
     });
 
     it('should include dotenv for SDK', () => {
@@ -31,8 +41,17 @@ describe('common templates', () => {
       const template = getPackageJsonTemplate(projectName, { framework: 'fastmcp' });
       const pkg = JSON.parse(template);
       expect(pkg.dependencies['fastmcp']).toBeDefined();
+      // FastMCP depends on the v1 SDK transitively, never directly
       expect(pkg.dependencies['@modelcontextprotocol/sdk']).toBeUndefined();
       expect(pkg.dependencies['express']).toBeUndefined();
+    });
+
+    it('should NOT pull SDK v2 packages into FastMCP projects', () => {
+      const template = getPackageJsonTemplate(projectName, { framework: 'fastmcp' });
+      const pkg = JSON.parse(template);
+      expect(pkg.dependencies['@modelcontextprotocol/server']).toBeUndefined();
+      expect(pkg.dependencies['@modelcontextprotocol/express']).toBeUndefined();
+      expect(pkg.dependencies['@modelcontextprotocol/node']).toBeUndefined();
     });
 
     it('should include dotenv for FastMCP', () => {
@@ -67,7 +86,10 @@ describe('common templates', () => {
       const pkg = JSON.parse(template);
       expect(pkg.dependencies['express']).toBeUndefined();
       expect(pkg.devDependencies['@types/express']).toBeUndefined();
-      expect(pkg.dependencies['@modelcontextprotocol/sdk']).toBeDefined();
+      expect(pkg.dependencies['hono']).toBeUndefined();
+      expect(pkg.dependencies['@modelcontextprotocol/server']).toBeDefined();
+      expect(pkg.dependencies['@modelcontextprotocol/express']).toBeUndefined();
+      expect(pkg.dependencies['@modelcontextprotocol/node']).toBeUndefined();
     });
 
     it('should use inspect:tools, inspect:prompts, inspect:resources scripts for stdio transport', () => {
@@ -86,6 +108,19 @@ describe('common templates', () => {
       const template = getPackageJsonTemplate(projectName, { framework: 'sdk', transport: 'http' });
       const pkg = JSON.parse(template);
       expect(pkg.scripts.inspect).toContain('http://localhost:3000/mcp');
+    });
+
+    // The inspector devDependency requires >=22.19.0; a lower floor makes npm
+    // emit an EBADENGINE warning on install.
+    it('should declare a node engine satisfying the inspector requirement', () => {
+      for (const options of [
+        { framework: 'sdk' as const, transport: 'http' as const },
+        { framework: 'sdk' as const, transport: 'stdio' as const },
+        { framework: 'fastmcp' as const },
+      ]) {
+        const pkg = JSON.parse(getPackageJsonTemplate(projectName, options));
+        expect(pkg.engines.node).toBe('>=22.19.0');
+      }
     });
 
     it('should include required scripts', () => {

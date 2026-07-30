@@ -1,26 +1,27 @@
 export function getServerTemplate(projectName: string): string {
-  return `import type { CallToolResult, GetPromptResult, ReadResourceResult } from '@modelcontextprotocol/sdk/types.js';
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+  return `import type {
+  CallToolResult,
+  GetPromptResult,
+  ReadResourceResult,
+} from '@modelcontextprotocol/server';
+import { McpServer } from '@modelcontextprotocol/server';
 import { z } from 'zod';
 
 export function getServer() {
   // Create an MCP server with implementation details
-  const server = new McpServer(
-    {
-      name: '${projectName}',
-      version: '1.0.0',
-    },
-    { capabilities: { logging: {} } }
-  );
+  const server = new McpServer({
+    name: '${projectName}',
+    version: '1.0.0',
+  });
 
   // Register a simple prompt
   server.registerPrompt(
     'greeting-template',
     {
       description: 'A simple greeting prompt template',
-      argsSchema: {
+      argsSchema: z.object({
         name: z.string().describe('Name to include in greeting'),
-      },
+      }),
     },
     async ({ name }): Promise<GetPromptResult> => {
       return {
@@ -37,45 +38,20 @@ export function getServer() {
     }
   );
 
-  // Register a tool for testing resumability
   server.registerTool(
-    'start-notification-stream',
+    'greet',
     {
-      description: 'Starts sending periodic notifications for testing resumability',
-      inputSchema: {
-        interval: z
-          .number()
-          .describe('Interval in milliseconds between notifications')
-          .default(100),
-        count: z.number().describe('Number of notifications to send (0 for 100)').default(10),
-      },
+      description: 'Greet a user by name',
+      inputSchema: z.object({
+        name: z.string().describe('Name of the person to greet'),
+      }),
     },
-    async ({ interval, count }, extra): Promise<CallToolResult> => {
-      const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-      let counter = 0;
-
-      while (count === 0 || counter < count) {
-        counter++;
-        try {
-          await server.sendLoggingMessage(
-            {
-              level: 'info',
-              data: \`Periodic notification #\${counter} at \${new Date().toISOString()}\`,
-            },
-            extra.sessionId
-          );
-        } catch (error) {
-          console.error('Error sending notification:', error);
-        }
-        // Wait for the specified interval
-        await sleep(interval);
-      }
-
+    async ({ name }): Promise<CallToolResult> => {
       return {
         content: [
           {
             type: 'text',
-            text: \`Started sending periodic notifications every \${interval}ms\`,
+            text: \`Hello, \${name}!\`,
           },
         ],
       };

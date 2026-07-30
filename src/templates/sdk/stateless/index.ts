@@ -1,14 +1,55 @@
 export type { SdkTemplateOptions as TemplateOptions } from '../../common/types.js';
 import type { SdkTemplateOptions } from '../../common/types.js';
 
-// Options parameter added for type consistency with stateful template (OAuth not supported in stateless)
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+/**
+ * Shared HTTP entrypoint template, used by both SDK HTTP template types.
+ * Varies only by `options.withOAuth`.
+ */
 export function getIndexTemplate(options?: SdkTemplateOptions): string {
+  const withOAuth = options?.withOAuth ?? false;
+
+  const authImports = withOAuth
+    ? `
+import {
+  setupAuthMetadataRouter,
+  authMiddleware,
+  getOAuthMetadataUrl,
+  validateOAuthConfig,
+} from './auth.js';`
+    : '';
+
+  const mcpRoute = withOAuth
+    ? `app.all('/mcp', authMiddleware, (req: Request, res: Response) => void node(req, res, req.body));`
+    : `app.all('/mcp', (req: Request, res: Response) => void node(req, res, req.body));`;
+
+  const startup = withOAuth
+    ? `async function main() {
+  // Validate OAuth configuration and fetch OIDC discovery document
+  await validateOAuthConfig();
+
+  // Setup OAuth metadata routes (must be after validateOAuthConfig)
+  setupAuthMetadataRouter(app);
+
+  startServer(PORT);
+}
+
+main().catch((error) => {
+  console.error('Failed to start server:', error.message);
+  process.exit(1);
+});`
+    : `startServer(PORT);`;
+
+  const oauthMetadataLog = withOAuth
+    ? `
+    console.log(\`OAuth metadata available at \${getOAuthMetadataUrl()}\`);`
+    : '';
+
   return `import 'dotenv/config';
-  import { type Request, type Response } from 'express';
-import { createMcpExpressApp } from '@modelcontextprotocol/sdk/server/express.js';
-import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import { getServer } from './server.js';
+import { type Request, type Response } from 'express';
+import { createMcpHandler } from '@modelcontextprotocol/server';
+import { createMcpExpressApp } from '@modelcontextprotocol/express';
+import { toNodeHandler } from '@modelcontextprotocol/node';
+import { getServer } from './server.js';${authImports}
 
 const allowedHosts = process.env.ALLOWED_HOSTS?.split(',') ?? [];
 
@@ -19,68 +60,19 @@ const app = createMcpExpressApp({
 // Health check endpoint for container orchestration
 app.get('/health', (_, res) => res.sendStatus(200));
 
-app.post('/mcp', async (req: Request, res: Response) => {
-  const server = getServer();
-  try {
-    const transport: StreamableHTTPServerTransport = new StreamableHTTPServerTransport({
-      sessionIdGenerator: undefined,
-    });
-    await server.connect(transport);
-    await transport.handleRequest(req, res, req.body);
-    res.on('close', () => {
-      console.log('Request closed');
-      transport.close();
-      server.close();
-    });
-  } catch (error) {
-    console.error('Error handling MCP request:', error);
-    if (!res.headersSent) {
-      res.status(500).json({
-        jsonrpc: '2.0',
-        error: {
-          code: -32603,
-          message: 'Internal server error',
-        },
-        id: null,
-      });
-    }
-  }
-});
+// The factory runs once per request, so a fresh McpServer serves every call.
+const handler = createMcpHandler(() => getServer());
+const node = toNodeHandler(handler);
 
-app.get('/mcp', async (req: Request, res: Response) => {
-  console.log('Received GET MCP request');
-  res.writeHead(405).end(
-    JSON.stringify({
-      jsonrpc: '2.0',
-      error: {
-        code: -32000,
-        message: 'Method not allowed.',
-      },
-      id: null,
-    })
-  );
-});
-
-app.delete('/mcp', async (req: Request, res: Response) => {
-  console.log('Received DELETE MCP request');
-  res.writeHead(405).end(
-    JSON.stringify({
-      jsonrpc: '2.0',
-      error: {
-        code: -32000,
-        message: 'Method not allowed.',
-      },
-      id: null,
-    })
-  );
-});
+// The handler owns method dispatch (POST/GET/DELETE) for the MCP endpoint.
+${mcpRoute}
 
 // Start the server
 const PORT = process.env.PORT || 3000;
 
 function startServer(port: number | string): void {
   const server = app.listen(port, () => {
-    console.log(\`MCP Streamable HTTP Server listening on port \${port}\`);
+    console.log(\`MCP HTTP Server listening on port \${port}\`);${oauthMetadataLog}
   });
 
   server.on('error', (error: NodeJS.ErrnoException) => {
@@ -95,7 +87,7 @@ function startServer(port: number | string): void {
   });
 }
 
-startServer(PORT);
+${startup}
 
 // Handle server shutdown
 process.on('SIGINT', async () => {

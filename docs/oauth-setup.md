@@ -70,7 +70,7 @@ Consult your provider's documentation to configure these settings.
    curl -X POST http://localhost:3000/mcp \
      -H "Content-Type: application/json" \
      -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
-     -d '{"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"1.0"}},"id":1}'
+     -d '{"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":"2026-07-28","capabilities":{},"clientInfo":{"name":"test","version":"1.0"}},"id":1}'
    ```
 
 ## Troubleshooting

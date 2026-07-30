@@ -21,13 +21,16 @@ describe('auth template', () => {
       expect(template).toContain('jwtVerify');
     });
 
-    it('should use SDK auth imports', () => {
+    it('should use SDK v2 auth imports', () => {
       const template = getAuthTemplate();
-      expect(template).toContain("from '@modelcontextprotocol/sdk/server/auth/router.js'");
-      expect(template).toContain(
-        "from '@modelcontextprotocol/sdk/server/auth/middleware/bearerAuth.js'"
-      );
-      expect(template).toContain("from '@modelcontextprotocol/sdk/shared/auth.js'");
+      expect(template).toContain("from '@modelcontextprotocol/express'");
+      expect(template).toContain("from '@modelcontextprotocol/server'");
+      expect(template).not.toContain('@modelcontextprotocol/sdk');
+    });
+
+    it('should type the verifier as OAuthTokenVerifier', () => {
+      const template = getAuthTemplate();
+      expect(template).toContain('OAuthTokenVerifier');
     });
 
     it('should export setupAuthMetadataRouter function', () => {
