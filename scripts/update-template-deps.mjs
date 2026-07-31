@@ -20,10 +20,15 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const TEMPLATE_FILE = resolve(__dirname, '../src/templates/common/package.json.ts');
 const DRY_RUN = process.argv.includes('--dry-run');
 
+// Excludes '@modelcontextprotocol/sdk' (v1) by design - see "Template
+// dependencies" in CLAUDE.md before adding packages here.
 const TEMPLATE_PACKAGES = [
-  '@modelcontextprotocol/sdk',
+  '@modelcontextprotocol/server',
+  '@modelcontextprotocol/express',
+  '@modelcontextprotocol/node',
   '@modelcontextprotocol/inspector',
   'express',
+  'hono',
   'fastmcp',
   'zod',
   'dotenv',

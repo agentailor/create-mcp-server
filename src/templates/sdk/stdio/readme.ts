@@ -35,11 +35,15 @@ export function getReadmeTemplate(projectName: string, options?: TemplateOptions
 
   return `# ${projectName}
 
-A stdio MCP (Model Context Protocol) server using the official MCP SDK.
+A stdio MCP (Model Context Protocol) server using the official MCP TypeScript SDK v2.
 
 ## About
 
 This project was created with [@agentailor/create-mcp-server](https://www.npmjs.com/package/@agentailor/create-mcp-server).
+
+The server uses \`serveStdio\`, which pins one server instance per connection and negotiates the protocol era from the opening exchange. It serves MCP protocol revision **2026-07-28** and also accepts 2025-era clients.
+
+Note: stdout is reserved for the MCP protocol, so all logging must go to stderr.
 
 ## Getting Started
 
@@ -74,10 +78,7 @@ You can also call tools directly:
 
 \`\`\`bash
 # Call a tool
-npx @modelcontextprotocol/inspector --cli node dist/index.js --method tools/call --tool-name start-notification-stream --tool-arg interval=100 --tool-arg count=5
-
-# Call a tool with JSON arguments
-npx @modelcontextprotocol/inspector --cli node dist/index.js --method tools/call --tool-name start-notification-stream --tool-arg 'options={"interval": 100, "count": 5}'
+npx @modelcontextprotocol/inspector --cli node dist/index.js --method tools/call --tool-name greet --tool-arg name=World
 \`\`\`
 
 ## Included Examples
@@ -90,9 +91,8 @@ This server comes with example implementations to help you get started:
 
 ### Tools
 
-- **start-notification-stream** - Sends periodic notifications for testing. Parameters:
-  - \`interval\`: Milliseconds between notifications (default: 100)
-  - \`count\`: Number of notifications to send (default: 10, use 0 for unlimited)
+- **greet** - Greets a user by name. Parameters:
+  - \`name\`: Name of the person to greet
 
 ### Resources
 
@@ -118,6 +118,6 @@ ${projectName}/
 ## Learn More
 
 - [Model Context Protocol](https://modelcontextprotocol.io/)
-- [MCP TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk)
+- [MCP TypeScript SDK v2](https://ts.sdk.modelcontextprotocol.io/v2/)
 `;
 }

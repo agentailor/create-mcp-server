@@ -24,22 +24,22 @@ create-mcp-server/
 │       │   ├── dockerignore.ts     # .dockerignore template
 │       │   ├── index.ts            # Barrel exports
 │       │   └── templates.test.ts   # Tests for deployment templates
-│       ├── sdk/                    # Official MCP SDK templates
-│       │   ├── stateless/          # Stateless HTTP template
+│       ├── sdk/                    # Official MCP SDK v2 templates
+│       │   ├── stateless/          # Shared HTTP template (source of truth)
 │       │   │   ├── server.ts       # MCP server definition template
-│       │   │   ├── index.ts        # Barrel export + getIndexTemplate
-│       │   │   ├── readme.ts       # README.md template
+│       │   │   ├── index.ts        # getIndexTemplate (createMcpHandler + toNodeHandler)
+│       │   │   ├── readme.ts       # README.md template (OAuth-aware)
 │       │   │   └── templates.test.ts
-│       │   ├── stateful/           # Stateful HTTP template with OAuth option
+│       │   ├── stateful/           # Compatibility shim - re-exports stateless
 │       │   │   ├── server.ts       # Re-exports from stateless
-│       │   │   ├── index.ts        # Barrel export + getIndexTemplate
-│       │   │   ├── readme.ts       # README.md template
-│       │   │   ├── auth.ts         # OAuth authentication template
+│       │   │   ├── index.ts        # Re-exports getIndexTemplate from stateless
+│       │   │   ├── readme.ts       # Re-exports from stateless
+│       │   │   ├── auth.ts         # OAuth authentication template (owned here)
 │       │   │   ├── auth.test.ts    # Tests for auth template
 │       │   │   └── templates.test.ts
 │       │   └── stdio/              # stdio transport template
 │       │       ├── server.ts       # Re-exports from stateless
-│       │       ├── index.ts        # Barrel export + getIndexTemplate (StdioServerTransport)
+│       │       ├── index.ts        # Barrel export + getIndexTemplate (serveStdio)
 │       │       ├── readme.ts       # README.md template (for local clients)
 │       │       └── templates.test.ts
 │       └── fastmcp/                # FastMCP templates
@@ -85,6 +85,15 @@ npm run format
 npm run format:check
 ```
 
+## Template dependencies
+
+Versions emitted into generated projects are hardcoded in `src/templates/common/package.json.ts` and refreshed by `npm run update-template-deps` (`scripts/update-template-deps.mjs`), which resolves `latest` for every entry in `TEMPLATE_PACKAGES`.
+
+Two things to know before editing that list:
+
+- **`@modelcontextprotocol/sdk` is deliberately absent.** No template declares it any more — SDK templates use the split v2 packages, and FastMCP depends on it transitively rather than directly. Do not add it back, and never point it at `2.x`: the v2 packages are a different package line, and the v1 monolith's own `latest` is still `1.x`.
+- **`hono` is required for SDK HTTP projects.** It is a peer dependency of `@modelcontextprotocol/node`, so the generated project must declare it explicitly even though no template code imports it.
+
 ## Publishing
 
 ```bash
@@ -114,71 +123,95 @@ npx @agentailor/create-mcp-server --name=my-server [options]
 | `--package-manager` | `-p` | `npm` | npm, pnpm, yarn |
 | `--framework` | `-f` | `sdk` | sdk, fastmcp |
 | `--stdio` | — | `false` | flag; uses stdio transport instead of HTTP |
-| `--template` | `-t` | `stateless` | stateless, stateful (HTTP only, ignored with --stdio) |
-| `--oauth` | — | `false` | flag (sdk+stateful only, incompatible with --stdio) |
+| `--template` | `-t` | `stateless` | stateless, stateful — accepted for compatibility; both produce the same SDK v2 project |
+| `--oauth` | — | `false` | flag (sdk HTTP only, incompatible with --stdio) |
 | `--no-git` | — | `false` | flag |
 
 ## Frameworks
 
-### Official MCP SDK (default)
+### Official MCP SDK (default) — v2
 
-Uses the official `@modelcontextprotocol/sdk` package with Express.js for full control.
+Uses the **MCP TypeScript SDK v2** split packages with Express.js for full control:
+
+- `@modelcontextprotocol/server` — `McpServer`, `createMcpHandler`, types, OAuth types; `/stdio` subpath exports `serveStdio`
+- `@modelcontextprotocol/express` — `createMcpExpressApp`, `requireBearerAuth`, `mcpAuthMetadataRouter`, `getOAuthProtectedResourceMetadataUrl`
+- `@modelcontextprotocol/node` — `toNodeHandler` (peer-depends on `hono`, so generated HTTP projects declare `hono` explicitly)
+
+Generated SDK projects serve protocol revision **`2026-07-28`** and also accept 2025-era clients.
+
+Key v2 API notes:
+- `registerTool`/`registerPrompt` take a **Standard Schema** (`inputSchema: z.object({...})`), not a raw shape. Requires zod ≥ 4.2.0 — zod 3.x fails silently on `tools/list`.
+- Handler second argument is `ctx`, not `extra` (`ctx.mcpReq.signal`, `ctx.http?.authInfo`).
+- Logging/sampling/roots are deprecated (SEP-2577); templates avoid `sendLoggingMessage`.
+- Nothing in v2 puts `2026-07-28` on the wire by default — it is an explicit opt-in via `createMcpHandler` / `serveStdio`.
 
 ### FastMCP
 
 Uses [FastMCP](https://github.com/punkpeye/fastmcp), a TypeScript framework built on top of the official SDK that provides a simpler, more intuitive API.
 
+**FastMCP has not migrated to SDK v2** — it still depends on `@modelcontextprotocol/sdk` v1 internally, so FastMCP templates intentionally remain on v1 and speak the 2025-era protocol. Revisit when FastMCP ships v2 support.
+
 ## Templates
 
 ### SDK Templates
 
-#### sdk/stateless
+#### sdk/stateless — the shared HTTP template
 
-A stateless streamable HTTP MCP server using the official SDK. Each request creates a new transport and server instance.
+A streamable HTTP MCP server using SDK v2. `createMcpHandler` runs the server factory once per request, so a fresh `McpServer` serves every call.
+
+This directory holds the **shared** HTTP implementation: `server.ts`, `index.ts`, and `readme.ts` here are re-exported by `sdk/stateful`.
 
 Features:
-- Express.js with `StreamableHTTPServerTransport`
-- No session management (new transport per request)
+- Express.js via `createMcpExpressApp` + `toNodeHandler`
+- Single `app.all('/mcp', ...)` route — the handler owns method dispatch
+- Serves protocol `2026-07-28`; 2025-era clients handled via the default `legacy: 'stateless'`
 - Example prompt (`greeting-template`)
-- Example tool (`start-notification-stream`)
+- Example tool (`greet`)
 - Example resource (`greeting-resource`)
-- TypeScript configuration
+- Health check at `GET /health`
 - Environment variable support for PORT and ALLOWED_HOSTS
+- **Optional OAuth authentication** (`withOAuth`)
 
 #### sdk/stateful
 
-A stateful streamable HTTP MCP server with session management using the official SDK.
+Retained only for CLI compatibility. SDK v2 collapsed the stateless/stateful distinction, so this directory re-exports the stateless template's `server.ts`, `index.ts`, and `readme.ts` verbatim. It still owns `auth.ts` (the OAuth template).
 
-Features:
-- Session tracking via `mcp-session-id` header
-- Transport reuse across requests within a session
-- SSE stream support (GET /mcp)
-- Session termination (DELETE /mcp)
-- Same example prompt, tool, and resource as stateless
-- Graceful shutdown with transport cleanup
-- **Optional OAuth authentication** (enabled via CLI prompt)
+If a session-based variant is ever needed again, it would be built on `NodeStreamableHTTPServerTransport` from `@modelcontextprotocol/node`.
+
+##### Why stateless and stateful are identical
+
+`createMcpHandler` runs the server factory **once per request**, so a fresh `McpServer` serves every call, and its default `legacy: 'stateless'` serves 2025-era clients through that same per-request path. There is no session state left for a "stateful" variant to hold, so both template types generate the same project.
+
+Consequences to keep in mind when editing:
+
+- `sdk/stateless/` is the source of truth for the HTTP templates. `sdk/stateful/` is a re-export shim — change behaviour in `stateless/`.
+- `--template` no longer affects SDK output. It is still parsed so existing invocations keep working, and the interactive flow no longer prompts for it.
+- OAuth is **orthogonal** to the template type. It applies to any SDK HTTP project and is keyed off `withOAuth`, never off `templateType`. `project-generator.ts` previously resolved `getAuthTemplate` through the template-type map; once both types converged that silently produced no `auth.ts`.
 
 ##### OAuth Option
 
-When OAuth is enabled for the stateful template:
+OAuth is orthogonal to the template type and applies to any SDK HTTP project. When enabled:
 - Generates `src/auth.ts` with JWKS/JWT-based OAuth middleware
 - Uses any OIDC-compliant provider (Auth0, Keycloak, Azure AD, Okta, etc.)
 - Environment variables: `OAUTH_ISSUER_URL`, `OAUTH_AUDIENCE` (optional)
 - Token verification via JWKS (fetches public keys from `{issuer}/.well-known/jwks.json`)
 - Protected resource metadata endpoint at `/.well-known/oauth-protected-resource`
 - Server startup validation ensures OAuth provider is reachable
+- `requireBearerAuth` attaches `AuthInfo` to `req.auth`; `toNodeHandler` forwards it to handlers as `ctx.http.authInfo`
 - See [docs/oauth-setup.md](docs/oauth-setup.md) for provider-specific setup instructions
 
 #### sdk/stdio
 
-A stdio MCP server using the official SDK. Uses `StdioServerTransport` — for local clients like Claude Desktop.
+A stdio MCP server using SDK v2. Uses `serveStdio` — for local clients like Claude Desktop.
 
 Features:
-- `StdioServerTransport` (no HTTP server, no Express)
-- Same example prompt, tool, and resource as stateless
+- `serveStdio(() => getServer())` from `@modelcontextprotocol/server/stdio` (no HTTP server, no Express)
+- Pins one server instance per connection; negotiates protocol era from the opening exchange
+- Same example prompt, tool, and resource as the shared HTTP template
 - No PORT/ALLOWED_HOSTS environment variables
 - No Dockerfile generated (stdio servers are run directly)
 - MCP Inspector CLI mode (`mcp-inspector --cli node dist/index.js`)
+- stdout is reserved for the MCP protocol — log to stderr only
 
 ### FastMCP Templates
 
@@ -190,13 +223,13 @@ Features:
 - Supports stateless/stateful HTTP modes and stdio via config
 - Example prompt, tool, and resource
 
-Generated project structure for HTTP templates (+auth.ts when OAuth enabled for SDK stateful):
+Generated project structure for HTTP templates (+auth.ts when OAuth enabled for SDK):
 ```
 {project-name}/
 ├── src/
 │   ├── server.ts     # MCP server with tools/prompts/resources
 │   ├── index.ts      # Server startup configuration
-│   └── auth.ts       # OAuth middleware (SDK stateful + OAuth only)
+│   └── auth.ts       # OAuth middleware (SDK HTTP + OAuth only)
 ├── Dockerfile        # Multi-stage Docker build
 ├── .dockerignore     # Docker ignore file
 ├── package.json
@@ -226,7 +259,7 @@ All generated projects include deployment configuration by default:
 ### Dockerfile
 
 Multi-stage build for production:
-- Uses Node 20 Alpine as base image
+- Uses Node 22 Alpine as base image
 - Builds TypeScript in builder stage
 - Copies only production dependencies and dist to final image
 - Exposes port 3000

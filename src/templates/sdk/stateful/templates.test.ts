@@ -1,8 +1,29 @@
 import { describe, it, expect } from 'vitest';
 import { getServerTemplate, getIndexTemplate, getReadmeTemplate } from './index.js';
+import {
+  getIndexTemplate as getStatelessIndexTemplate,
+  getReadmeTemplate as getStatelessReadmeTemplate,
+} from '../stateless/index.js';
 
 describe('sdk/stateful templates', () => {
   const projectName = 'test-project';
+
+  // Pins the re-export: shared behaviour is covered by the stateless suite.
+  describe('convergence with the stateless template', () => {
+    it('should produce the same index template as stateless', () => {
+      expect(getIndexTemplate()).toBe(getStatelessIndexTemplate());
+    });
+
+    it('should produce the same index template as stateless with OAuth', () => {
+      expect(getIndexTemplate({ withOAuth: true })).toBe(
+        getStatelessIndexTemplate({ withOAuth: true })
+      );
+    });
+
+    it('should produce the same readme as stateless', () => {
+      expect(getReadmeTemplate(projectName)).toBe(getStatelessReadmeTemplate(projectName));
+    });
+  });
 
   describe('getServerTemplate', () => {
     it('should include project name in server config', () => {
@@ -10,48 +31,36 @@ describe('sdk/stateful templates', () => {
       expect(template).toContain(`name: '${projectName}'`);
     });
 
-    it('should use correct SDK imports', () => {
+    it('should use SDK v2 imports', () => {
       const template = getServerTemplate(projectName);
-      expect(template).toContain("from '@modelcontextprotocol/sdk/types.js'");
-      expect(template).toContain("from '@modelcontextprotocol/sdk/server/mcp.js'");
+      expect(template).toContain("from '@modelcontextprotocol/server'");
+      expect(template).not.toContain('@modelcontextprotocol/sdk');
     });
 
-    it('should include example prompt', () => {
+    it('should include example prompt, tool and resource', () => {
       const template = getServerTemplate(projectName);
       expect(template).toContain('greeting-template');
       expect(template).toContain('registerPrompt');
-    });
-
-    it('should include example tool', () => {
-      const template = getServerTemplate(projectName);
-      expect(template).toContain('start-notification-stream');
+      expect(template).toContain('greet');
       expect(template).toContain('registerTool');
-    });
-
-    it('should include example resource', () => {
-      const template = getServerTemplate(projectName);
       expect(template).toContain('greeting-resource');
       expect(template).toContain('registerResource');
     });
   });
 
   describe('getIndexTemplate', () => {
-    it('should use correct SDK import for transport', () => {
+    it('should use SDK v2 serving imports', () => {
       const template = getIndexTemplate();
-      expect(template).toContain("from '@modelcontextprotocol/sdk/server/streamableHttp.js'");
+      expect(template).toContain("import { createMcpHandler } from '@modelcontextprotocol/server'");
+      expect(template).toContain(
+        "import { createMcpExpressApp } from '@modelcontextprotocol/express'"
+      );
+      expect(template).toContain("import { toNodeHandler } from '@modelcontextprotocol/node'");
     });
 
-    it('should use createMcpExpressApp', () => {
+    it('should mount the /mcp endpoint with app.all', () => {
       const template = getIndexTemplate();
-      expect(template).toContain('createMcpExpressApp');
-      expect(template).toContain('const app = createMcpExpressApp({');
-    });
-
-    it('should configure /mcp endpoint', () => {
-      const template = getIndexTemplate();
-      expect(template).toContain("app.post('/mcp'");
-      expect(template).toContain("app.get('/mcp'");
-      expect(template).toContain("app.delete('/mcp'");
+      expect(template).toContain("app.all('/mcp'");
     });
 
     it('should use PORT from environment variable', () => {
@@ -59,45 +68,13 @@ describe('sdk/stateful templates', () => {
       expect(template).toContain('process.env.PORT');
     });
 
-    it('should pass allowedHosts to createMcpExpressApp', () => {
+    it('should not carry over v1 session machinery', () => {
       const template = getIndexTemplate();
-      expect(template).toContain('allowedHosts');
-      expect(template).toContain("ALLOWED_HOSTS?.split(',')");
-    });
-
-    // Stateful-specific tests
-    it('should use session ID header', () => {
-      const template = getIndexTemplate();
-      expect(template).toContain('mcp-session-id');
-    });
-
-    it('should store transports by session ID', () => {
-      const template = getIndexTemplate();
-      expect(template).toContain('const transports');
-      expect(template).toContain('transports[sessionId]');
-    });
-
-    it('should use isInitializeRequest for new sessions', () => {
-      const template = getIndexTemplate();
-      expect(template).toContain('isInitializeRequest');
-    });
-
-    it('should generate session IDs with randomUUID', () => {
-      const template = getIndexTemplate();
-      expect(template).toContain('randomUUID');
-      expect(template).toContain('sessionIdGenerator');
-    });
-
-    it('should handle session cleanup on close', () => {
-      const template = getIndexTemplate();
-      expect(template).toContain('transport.onclose');
-      expect(template).toContain('delete transports[sid]');
-    });
-
-    it('should close all transports on SIGINT', () => {
-      const template = getIndexTemplate();
-      expect(template).toContain("process.on('SIGINT'");
-      expect(template).toContain('transports[sessionId].close()');
+      expect(template).not.toContain('sessionIdGenerator');
+      expect(template).not.toContain('isInitializeRequest');
+      expect(template).not.toContain('randomUUID');
+      expect(template).not.toContain('mcp-session-id');
+      expect(template).not.toContain('const transports');
     });
   });
 
@@ -120,22 +97,11 @@ describe('sdk/stateful templates', () => {
       expect(template).toContain('/mcp');
     });
 
-    // Stateful-specific documentation tests
-    it('should document session management', () => {
+    it('should not document removed session management', () => {
       const template = getReadmeTemplate(projectName);
-      expect(template).toContain('mcp-session-id');
-      expect(template).toContain('Session');
-    });
-
-    it('should document SSE stream support', () => {
-      const template = getReadmeTemplate(projectName);
-      expect(template).toContain('GET /mcp');
-      expect(template).toContain('SSE');
-    });
-
-    it('should document session termination', () => {
-      const template = getReadmeTemplate(projectName);
-      expect(template).toContain('DELETE /mcp');
+      expect(template).not.toContain('mcp-session-id');
+      expect(template).not.toContain('DELETE /mcp');
+      expect(template).not.toContain('SSE');
     });
   });
 
@@ -186,11 +152,9 @@ describe('sdk/stateful templates', () => {
       expect(template).toContain('setupAuthMetadataRouter(app)');
     });
 
-    it('should apply auth middleware to routes when OAuth enabled', () => {
+    it('should apply auth middleware to the /mcp route when OAuth enabled', () => {
       const template = getIndexTemplate({ withOAuth: true });
-      expect(template).toContain("app.post('/mcp', authMiddleware,");
-      expect(template).toContain("app.get('/mcp', authMiddleware,");
-      expect(template).toContain("app.delete('/mcp', authMiddleware,");
+      expect(template).toContain("app.all('/mcp', authMiddleware,");
     });
 
     it('should log OAuth metadata URL on startup when OAuth enabled', () => {
@@ -253,6 +217,11 @@ describe('sdk/stateful templates', () => {
       const template = getReadmeTemplate(projectName, { withOAuth: true });
       expect(template).toContain('JWT');
       expect(template).toContain('.well-known/jwks.json');
+    });
+
+    it('should document where auth info surfaces to handlers', () => {
+      const template = getReadmeTemplate(projectName, { withOAuth: true });
+      expect(template).toContain('ctx.http.authInfo');
     });
 
     it('should include auth.ts in project structure when OAuth enabled', () => {

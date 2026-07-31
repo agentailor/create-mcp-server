@@ -4,9 +4,9 @@ import { createRemoteJWKSet, jwtVerify, type JWTPayload, type JWTVerifyGetKey } 
 import {
   mcpAuthMetadataRouter,
   getOAuthProtectedResourceMetadataUrl,
-} from '@modelcontextprotocol/sdk/server/auth/router.js';
-import { requireBearerAuth } from '@modelcontextprotocol/sdk/server/auth/middleware/bearerAuth.js';
-import type { OAuthMetadata } from '@modelcontextprotocol/sdk/shared/auth.js';
+  requireBearerAuth,
+} from '@modelcontextprotocol/express';
+import type { OAuthMetadata, OAuthTokenVerifier } from '@modelcontextprotocol/server';
 import type { Express, RequestHandler } from 'express';
 
 // OAuth configuration from environment variables
@@ -45,7 +45,7 @@ interface OIDCDiscoveryDocument {
 }
 
 // Token verifier using JWKS/JWT validation
-const tokenVerifier = {
+const tokenVerifier: OAuthTokenVerifier = {
   verifyAccessToken: async (token: string) => {
     if (!JWKS) {
       throw new Error('JWKS not initialized. Call validateOAuthConfig() first.');
@@ -104,7 +104,9 @@ export function setupAuthMetadataRouter(app: Express): void {
   );
 }
 
-// Export auth middleware for protecting routes
+// Export auth middleware for protecting routes.
+// requireBearerAuth attaches the validated AuthInfo to \`req.auth\`, which
+// toNodeHandler forwards to MCP handlers as \`ctx.http.authInfo\`.
 export const authMiddleware: RequestHandler = requireBearerAuth({
   verifier: tokenVerifier,
   requiredScopes: [],

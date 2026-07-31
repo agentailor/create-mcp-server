@@ -19,7 +19,7 @@ export interface ParseResult {
 }
 
 const NAME_REGEX = /^[a-z0-9-_]+$/i;
-const VERSION = '0.4.1';
+const VERSION = '0.7.0';
 
 function validateName(value: string): string {
   if (!NAME_REGEX.test(value)) {
@@ -49,12 +49,15 @@ export function parseArguments(): ParseResult {
         .default('sdk')
     )
     .addOption(
-      new Option('-t, --template <type>', 'Template type')
+      new Option(
+        '-t, --template <type>',
+        'Template type (no effect on SDK projects; both generate the same server)'
+      )
         .choices(['stateless', 'stateful'])
         .default('stateless')
     )
     .option('--stdio', 'Use stdio transport instead of HTTP', false)
-    .option('--oauth', 'Enable OAuth authentication (sdk+stateful only)', false)
+    .option('--oauth', 'Enable OAuth authentication (sdk HTTP only)', false)
     .option('--no-git', 'Skip git repository initialization');
 
   program.parse();
@@ -94,8 +97,8 @@ export function parseArguments(): ParseResult {
   }
 
   // Validate OAuth constraint
-  if (opts.oauth && (opts.framework !== 'sdk' || opts.template !== 'stateful')) {
-    console.error('\nError: --oauth is only valid with --framework=sdk and --template=stateful\n');
+  if (opts.oauth && opts.framework !== 'sdk') {
+    console.error('\nError: --oauth is only valid with --framework=sdk\n');
     process.exit(1);
   }
 

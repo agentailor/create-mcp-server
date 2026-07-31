@@ -10,10 +10,14 @@ describe('sdk/stateless templates', () => {
       expect(template).toContain(`name: '${projectName}'`);
     });
 
-    it('should use correct SDK imports', () => {
+    it('should use SDK v2 imports', () => {
       const template = getServerTemplate(projectName);
-      expect(template).toContain("from '@modelcontextprotocol/sdk/types.js'");
-      expect(template).toContain("from '@modelcontextprotocol/sdk/server/mcp.js'");
+      expect(template).toContain("from '@modelcontextprotocol/server'");
+    });
+
+    it('should not use v1 SDK import paths', () => {
+      const template = getServerTemplate(projectName);
+      expect(template).not.toContain('@modelcontextprotocol/sdk');
     });
 
     it('should include example prompt', () => {
@@ -24,8 +28,20 @@ describe('sdk/stateless templates', () => {
 
     it('should include example tool', () => {
       const template = getServerTemplate(projectName);
-      expect(template).toContain('start-notification-stream');
+      expect(template).toContain('greet');
       expect(template).toContain('registerTool');
+    });
+
+    it('should declare schemas as Standard Schema via z.object', () => {
+      const template = getServerTemplate(projectName);
+      expect(template).toContain('inputSchema: z.object(');
+      expect(template).toContain('argsSchema: z.object(');
+    });
+
+    it('should not use the deprecated logging subsystem', () => {
+      const template = getServerTemplate(projectName);
+      expect(template).not.toContain('sendLoggingMessage');
+      expect(template).not.toContain('capabilities: { logging: {} }');
     });
 
     it('should include example resource', () => {
@@ -36,9 +52,24 @@ describe('sdk/stateless templates', () => {
   });
 
   describe('getIndexTemplate', () => {
-    it('should use correct SDK import for transport', () => {
+    it('should use SDK v2 serving imports', () => {
       const template = getIndexTemplate();
-      expect(template).toContain("from '@modelcontextprotocol/sdk/server/streamableHttp.js'");
+      expect(template).toContain("import { createMcpHandler } from '@modelcontextprotocol/server'");
+      expect(template).toContain(
+        "import { createMcpExpressApp } from '@modelcontextprotocol/express'"
+      );
+      expect(template).toContain("import { toNodeHandler } from '@modelcontextprotocol/node'");
+    });
+
+    it('should not use v1 SDK import paths', () => {
+      const template = getIndexTemplate();
+      expect(template).not.toContain('@modelcontextprotocol/sdk');
+    });
+
+    it('should build the handler from a per-request server factory', () => {
+      const template = getIndexTemplate();
+      expect(template).toContain('createMcpHandler(() => getServer())');
+      expect(template).toContain('toNodeHandler(handler)');
     });
 
     it('should use createMcpExpressApp', () => {
@@ -47,11 +78,14 @@ describe('sdk/stateless templates', () => {
       expect(template).toContain('const app = createMcpExpressApp({');
     });
 
-    it('should configure /mcp endpoint', () => {
+    it('should mount the /mcp endpoint with app.all', () => {
       const template = getIndexTemplate();
-      expect(template).toContain("app.post('/mcp'");
-      expect(template).toContain("app.get('/mcp'");
-      expect(template).toContain("app.delete('/mcp'");
+      expect(template).toContain("app.all('/mcp'");
+    });
+
+    it('should include a health check endpoint', () => {
+      const template = getIndexTemplate();
+      expect(template).toContain("app.get('/health'");
     });
 
     it('should use PORT from environment variable', () => {
@@ -65,15 +99,12 @@ describe('sdk/stateless templates', () => {
       expect(template).toContain("ALLOWED_HOSTS?.split(',')");
     });
 
-    // Stateless-specific tests
-    it('should use undefined sessionIdGenerator for stateless mode', () => {
+    it('should not carry over v1 session machinery', () => {
       const template = getIndexTemplate();
-      expect(template).toContain('sessionIdGenerator: undefined');
-    });
-
-    it('should return 405 for GET requests', () => {
-      const template = getIndexTemplate();
-      expect(template).toContain('res.writeHead(405)');
+      expect(template).not.toContain('sessionIdGenerator');
+      expect(template).not.toContain('isInitializeRequest');
+      expect(template).not.toContain('randomUUID');
+      expect(template).not.toContain('mcp-session-id');
     });
   });
 
@@ -96,9 +127,15 @@ describe('sdk/stateless templates', () => {
       expect(template).toContain('/mcp');
     });
 
-    it('should describe stateless behavior', () => {
+    it('should describe stateless per-request behavior', () => {
       const template = getReadmeTemplate(projectName);
       expect(template).toContain('stateless');
+      expect(template).toContain('createMcpHandler');
+    });
+
+    it('should document the served protocol revision', () => {
+      const template = getReadmeTemplate(projectName);
+      expect(template).toContain('2026-07-28');
     });
   });
 

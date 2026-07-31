@@ -10,9 +10,9 @@ describe('deployment templates', () => {
       expect(template).toContain('AS production');
     });
 
-    it('should use Node 20 Alpine', () => {
+    it('should use Node 22 Alpine', () => {
       const template = getDockerfileTemplate();
-      expect(template).toContain('FROM node:20-alpine');
+      expect(template).toContain('FROM node:22-alpine');
     });
 
     it('should copy dist folder from builder', () => {

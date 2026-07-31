@@ -31,8 +31,8 @@ npx @agentailor/create-mcp-server --name=my-server
 | `--package-manager` | `-p` | `npm` | Package manager: npm, pnpm, yarn |
 | `--framework` | `-f` | `sdk` | Framework: sdk, fastmcp |
 | `--stdio` | — | `false` | Use stdio transport (for local clients) |
-| `--template` | `-t` | `stateless` | Server mode: stateless, stateful (HTTP only) |
-| `--oauth` | — | `false` | Enable OAuth (sdk+stateful only, incompatible with --stdio) |
+| `--template` | `-t` | `stateless` | Accepted for compatibility; SDK v2 serves both modes through one per-request idiom |
+| `--oauth` | — | `false` | Enable OAuth (sdk HTTP only, incompatible with --stdio) |
 | `--no-git` | — | `false` | Skip git initialization |
 | `--help` | `-h` | — | Show help |
 | `--version` | `-V` | — | Show version |
@@ -54,7 +54,6 @@ npx @agentailor/create-mcp-server \
   --name=my-auth-server \
   --package-manager=pnpm \
   --framework=sdk \
-  --template=stateful \
   --oauth
 
 # Short flags
@@ -63,9 +62,10 @@ npx @agentailor/create-mcp-server -n my-server -p yarn -f fastmcp
 
 ## Features
 
+- **MCP SDK v2** — SDK projects serve protocol revision `2026-07-28` and still accept 2025-era clients
 - **Two frameworks** — Official MCP SDK or FastMCP
-- **Two transport types** — HTTP (streamable) or stdio (for local cllients)
-- **Two HTTP server modes** — stateless or stateful with session management
+- **Two transport types** — HTTP (streamable) or stdio (for local clients)
+- **Stateless by design** — the SDK handler builds a fresh server per request, so HTTP servers scale without sticky sessions
 - **Optional OAuth** — OIDC-compliant authentication (SDK HTTP only) ([setup guide](docs/oauth-setup.md))
 - **Package manager choice** — npm, pnpm, or yarn
 - **TypeScript ready** — ready to customize
@@ -76,12 +76,20 @@ npx @agentailor/create-mcp-server -n my-server -p yarn -f fastmcp
 
 | Framework | Description |
 |-----------|-------------|
-| **Official MCP SDK** (default) | Full control with Express.js, supports OAuth |
-| **FastMCP** | Simpler API with less boilerplate |
+| **Official MCP SDK** (default) | SDK v2, full control with Express.js, supports OAuth |
+| **FastMCP** | Simpler API with less boilerplate (still on SDK v1) |
+
+### Official MCP SDK
+
+SDK projects are generated against the [MCP TypeScript SDK v2](https://ts.sdk.modelcontextprotocol.io/v2/) — the split `@modelcontextprotocol/server`, `@modelcontextprotocol/express`, and `@modelcontextprotocol/node` packages, rather than the v1 `@modelcontextprotocol/sdk` monolith.
+
+HTTP servers are built on `createMcpHandler`, which runs the server factory once per request. They serve protocol revision `2026-07-28` and also accept 2025-era clients. stdio servers use `serveStdio`, which negotiates the era per connection.
 
 ### FastMCP
 
 [FastMCP](https://github.com/punkpeye/fastmcp) is a TypeScript framework built on top of the official MCP SDK that provides a simpler, more intuitive API for building MCP servers.
+
+> **Note:** FastMCP has not migrated to SDK v2 — it still depends on `@modelcontextprotocol/sdk` v1 internally, so FastMCP projects speak the 2025-era protocol. Choose the Official MCP SDK if you need protocol revision `2026-07-28`.
 
 ```typescript
 import { FastMCP } from "fastmcp";
@@ -106,28 +114,20 @@ Learn more: [FastMCP Documentation](https://github.com/punkpeye/fastmcp)
 | Feature | HTTP (Streamable HTTP) | stdio |
 |---------|------------------------|-------|
 | Use case | Remote access, cloud deployment | Local clients (Claude Desktop) |
-| Protocol | HTTP/SSE | stdin/stdout |
-| Session management | ✓ (stateful mode) | — |
-| OAuth support | ✓ (SDK stateful) | — |
+| Protocol | HTTP | stdin/stdout |
+| OAuth support | ✓ (SDK only) | — |
 | Docker deployment | ✓ | — |
 | Port configuration | ✓ | — |
 
-**HTTP**: Deploy as an HTTP server accessible remotely. Choose stateless or stateful mode.
+**HTTP**: Deploy as an HTTP server accessible remotely.
 
 **stdio**: Run as a local process. Communicates over stdin/stdout. Ideal for local clients. No HTTP server, no port, no Dockerfile generated.
 
 ## Server Modes (HTTP only)
 
-| Feature | Stateless (default) | Stateful |
-|---------|---------------------|----------|
-| Session management | — | ✓ |
-| SSE support | — | ✓ |
-| OAuth option (SDK only) | — | ✓ |
-| Endpoints | POST /mcp | POST, GET, DELETE /mcp |
+SDK v2 serves every HTTP request through a single per-request idiom: `createMcpHandler` builds a fresh `McpServer` for each call, and 2025-era clients are served through the same path. The `stateless`/`stateful` distinction that v1 required no longer changes the generated project.
 
-**Stateless**: Simple HTTP server — each request creates a new transport instance.
-
-**Stateful**: Session-based server with transport reuse, Server-Sent Events for real-time updates, and optional OAuth authentication (SDK only).
+`--template` is still accepted so existing invocations keep working, but both values produce the same output. If you need session-based serving with SSE resumability, the SDK still offers `NodeStreamableHTTPServerTransport` — see the [SDK v2 sessions guide](https://ts.sdk.modelcontextprotocol.io/v2/serving/sessions-state-scaling.html).
 
 ## Generated Project
 

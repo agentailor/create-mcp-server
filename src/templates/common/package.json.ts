@@ -13,14 +13,15 @@ export function getPackageJsonTemplate(
 
   const commonDevDependencies = {
     typescript: '^6.0.3',
-    '@modelcontextprotocol/inspector': '^0.22.0',
+    '@modelcontextprotocol/inspector': '^2.0.0',
     '@types/node': '^26.0.0',
   };
   const zodDependency = { zod: '^4.4.3' };
   const dotEnvDependency = { dotenv: '^17.4.2' };
 
   if (framework === 'fastmcp') {
-    // FastMCP dependencies - simpler setup
+    // FastMCP pulls in @modelcontextprotocol/sdk v1 itself, so this branch
+    // stays on v1 and must not gain the v2 packages.
     dependencies = {
       fastmcp: '^4.3.2',
       ...zodDependency,
@@ -31,9 +32,9 @@ export function getPackageJsonTemplate(
       ...commonDevDependencies,
     };
   } else if (transport === 'stdio') {
-    // Official SDK stdio - no express needed
+    // Official SDK v2 stdio - no express needed
     dependencies = {
-      '@modelcontextprotocol/sdk': '^1.29.0',
+      '@modelcontextprotocol/server': '^2.0.0',
       ...zodDependency,
       ...dotEnvDependency,
     };
@@ -42,10 +43,14 @@ export function getPackageJsonTemplate(
       ...commonDevDependencies,
     };
   } else {
-    // Official SDK HTTP dependencies
+    // hono is a peer dependency of @modelcontextprotocol/node, so the generated
+    // project must declare it even though no template code imports it.
     dependencies = {
-      '@modelcontextprotocol/sdk': '^1.29.0',
+      '@modelcontextprotocol/server': '^2.0.0',
+      '@modelcontextprotocol/express': '^2.0.0',
+      '@modelcontextprotocol/node': '^2.0.0',
       express: '^5.2.1',
+      hono: '^4.11.5',
       ...zodDependency,
       ...dotEnvDependency,
     };
@@ -83,7 +88,9 @@ export function getPackageJsonTemplate(
     dependencies,
     devDependencies,
     engines: {
-      node: '>=20',
+      // Floor set by @modelcontextprotocol/inspector, which requires >=22.19.0.
+      // The SDK v2 packages themselves only need >=20.
+      node: '>=22.19.0',
     },
   };
 

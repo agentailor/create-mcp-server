@@ -102,16 +102,22 @@ export async function runInteractiveMode(): Promise<void> {
 
   const transport: TransportType = transportResponse.transport || 'http';
 
-  // Server mode selection - only for HTTP transport
+  // Only asked for FastMCP HTTP, where it maps to a real `stateless` config
+  // flag. SDK projects generate the same server either way, so asking would be
+  // a meaningless choice.
   let templateType: TemplateType = 'stateless';
-  if (transport === 'http') {
+  if (transport === 'http' && framework === 'fastmcp') {
     const templateTypeResponse = await prompts(
       {
         type: 'select',
         name: 'templateType',
         message: 'Server mode:',
         choices: [
-          { title: 'Stateless', value: 'stateless', description: 'Simple HTTP server' },
+          {
+            title: 'Stateless',
+            value: 'stateless',
+            description: 'No session state between requests',
+          },
           {
             title: 'Stateful',
             value: 'stateful',
@@ -126,9 +132,9 @@ export async function runInteractiveMode(): Promise<void> {
     templateType = templateTypeResponse.templateType || 'stateless';
   }
 
-  // OAuth prompt - only for SDK stateful HTTP template
+  // OAuth prompt - available for any SDK HTTP project
   let withOAuth = false;
-  if (transport === 'http' && framework === 'sdk' && templateType === 'stateful') {
+  if (transport === 'http' && framework === 'sdk') {
     const oauthResponse = await prompts(
       {
         type: 'confirm',

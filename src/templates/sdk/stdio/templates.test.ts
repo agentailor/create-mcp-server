@@ -10,10 +10,10 @@ describe('sdk/stdio templates', () => {
       expect(template).toContain(`name: '${projectName}'`);
     });
 
-    it('should use correct SDK imports', () => {
+    it('should use SDK v2 imports', () => {
       const template = getServerTemplate(projectName);
-      expect(template).toContain("from '@modelcontextprotocol/sdk/types.js'");
-      expect(template).toContain("from '@modelcontextprotocol/sdk/server/mcp.js'");
+      expect(template).toContain("from '@modelcontextprotocol/server'");
+      expect(template).not.toContain('@modelcontextprotocol/sdk');
     });
 
     it('should include example prompt', () => {
@@ -24,7 +24,7 @@ describe('sdk/stdio templates', () => {
 
     it('should include example tool', () => {
       const template = getServerTemplate(projectName);
-      expect(template).toContain('start-notification-stream');
+      expect(template).toContain('greet');
       expect(template).toContain('registerTool');
     });
 
@@ -36,10 +36,17 @@ describe('sdk/stdio templates', () => {
   });
 
   describe('getIndexTemplate', () => {
-    it('should import StdioServerTransport', () => {
+    it('should serve via serveStdio from the SDK v2 stdio entry', () => {
       const template = getIndexTemplate();
-      expect(template).toContain('StdioServerTransport');
-      expect(template).toContain('@modelcontextprotocol/sdk/server/stdio.js');
+      expect(template).toContain("import { serveStdio } from '@modelcontextprotocol/server/stdio'");
+      expect(template).toContain('serveStdio(() => getServer())');
+    });
+
+    it('should not use v1 SDK import paths or transport wiring', () => {
+      const template = getIndexTemplate();
+      expect(template).not.toContain('@modelcontextprotocol/sdk');
+      expect(template).not.toContain('StdioServerTransport');
+      expect(template).not.toContain('server.connect(');
     });
 
     it('should NOT import express or createMcpExpressApp', () => {
@@ -54,22 +61,10 @@ describe('sdk/stdio templates', () => {
       expect(template).not.toContain('process.env.PORT');
     });
 
-    it('should connect server to StdioServerTransport', () => {
-      const template = getIndexTemplate();
-      expect(template).toContain('new StdioServerTransport()');
-      expect(template).toContain('server.connect(transport)');
-    });
-
     it('should log to stderr, not stdout', () => {
       const template = getIndexTemplate();
-      expect(template).toContain('console.error("MCP Server running on stdio")');
-    });
-
-    it('should wrap startup in async main with error handling', () => {
-      const template = getIndexTemplate();
-      expect(template).toContain('async function main()');
-      expect(template).toContain('main().catch');
-      expect(template).toContain('process.exit(1)');
+      expect(template).toContain("console.error('MCP Server running on stdio')");
+      expect(template).not.toContain('console.log');
     });
   });
 
