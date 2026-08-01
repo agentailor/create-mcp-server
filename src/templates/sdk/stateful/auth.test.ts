@@ -119,5 +119,52 @@ describe('auth template', () => {
       const template = getAuthTemplate();
       expect(template).toContain("jwtPayload.scope.split(' ')");
     });
+
+    it('should import OAuthError and OAuthErrorCode as values, not types', () => {
+      const template = getAuthTemplate();
+      expect(template).toContain(
+        "import { OAuthError, OAuthErrorCode } from '@modelcontextprotocol/server'"
+      );
+    });
+
+    it('should reject malformed JWTs with an OAuthError so the response is 401', () => {
+      const template = getAuthTemplate();
+      expect(template).toContain('throw new OAuthError(\n          OAuthErrorCode.InvalidToken,');
+      expect(template).not.toContain(
+        "throw new Error(\n          'Token is not a valid JWT format"
+      );
+    });
+
+    it('should convert jose verification failures into an OAuthError', () => {
+      const template = getAuthTemplate();
+      expect(template).toContain(
+        "throw new OAuthError(OAuthErrorCode.InvalidToken, 'Token verification failed')"
+      );
+      // The bare re-throw produced a 500 server_error with no WWW-Authenticate header.
+      expect(template).not.toMatch(
+        /JWT verification failed:', error\.message\);\s*}\s*throw error;/
+      );
+    });
+
+    it('should re-throw an existing OAuthError unchanged', () => {
+      const template = getAuthTemplate();
+      expect(template).toContain('if (error instanceof OAuthError) {');
+    });
+
+    it('should not leak the underlying failure reason into the error response', () => {
+      const template = getAuthTemplate();
+      // The jose message is logged server-side but must not reach error_description.
+      expect(template).toContain("console.error('[auth] JWT verification failed:', error.message)");
+      expect(template).not.toContain(
+        "error instanceof Error ? error.message : 'Token verification failed'"
+      );
+    });
+
+    it('should keep an uninitialized JWKS as a plain Error (server misconfiguration)', () => {
+      const template = getAuthTemplate();
+      expect(template).toContain(
+        "throw new Error('JWKS not initialized. Call validateOAuthConfig() first.')"
+      );
+    });
   });
 });

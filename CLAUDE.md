@@ -198,6 +198,8 @@ OAuth is orthogonal to the template type and applies to any SDK HTTP project. Wh
 - Protected resource metadata endpoint at `/.well-known/oauth-protected-resource`
 - Server startup validation ensures OAuth provider is reachable
 - `requireBearerAuth` attaches `AuthInfo` to `req.auth`; `toNodeHandler` forwards it to handlers as `ctx.http.authInfo`
+- **The verifier must throw `OAuthError`, never a plain `Error`.** `requireBearerAuth` maps only `OAuthError` to a `401` + `WWW-Authenticate` challenge; anything else becomes a `500 server_error` with no challenge header, leaving clients no signal to re-authenticate. `auth.ts` therefore converts every `jose` failure (bad signature, expired, wrong issuer/audience) into `new OAuthError(OAuthErrorCode.InvalidToken, ...)`. Note `OAuthError`/`OAuthErrorCode` are **value** exports of `@modelcontextprotocol/server` — import them alongside, not inside, the existing `import type` line.
+- The 401 body is a fixed `'Token verification failed'` rather than the `jose` message, so callers can't probe *why* a token was rejected; the specific reason still goes to the server log. The `!JWKS` guard stays a plain `Error` on purpose — that is a server misconfiguration and belongs in the 500 bucket.
 - See [docs/oauth-setup.md](docs/oauth-setup.md) for provider-specific setup instructions
 
 #### sdk/stdio

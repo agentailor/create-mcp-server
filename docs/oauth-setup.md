@@ -34,6 +34,15 @@ When a client sends a request with `Authorization: Bearer <token>`:
 4. Checks the `aud` (audience) claim if `OAUTH_AUDIENCE` is configured
 5. Verifies the token has not expired (`exp` claim)
 
+If any step fails, the verifier throws an `OAuthError` with code `invalid_token`. The
+server answers **`401`** with a `WWW-Authenticate: Bearer` challenge that points at the
+protected resource metadata, so clients know to re-authenticate.
+
+The response body deliberately says only `"Token verification failed"` — it does not
+reveal whether the signature, issuer, audience, or expiry was at fault. **The specific
+reason is written to the server log** as `[auth] JWT verification failed: <reason>`, so
+check there when debugging a rejected token.
+
 ## Provider Requirements
 
 Your OIDC provider must:
@@ -74,6 +83,11 @@ Consult your provider's documentation to configure these settings.
    ```
 
 ## Troubleshooting
+
+A rejected token always returns the same `401` body, so diagnose from the **server log**
+line `[auth] JWT verification failed: <reason>`. The `<reason>` comes from `jose` — for
+example `signature verification failed`, `"exp" claim timestamp check failed`, or
+`unexpected "iss" claim value`. The sections below are keyed on that reason.
 
 ### "Token is not a valid JWT format"
 
