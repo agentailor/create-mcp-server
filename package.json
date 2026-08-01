@@ -1,6 +1,6 @@
 {
   "name": "@agentailor/create-mcp-server",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "Create a new MCP (Model Context Protocol) server project",
   "type": "module",
   "bin": {

@@ -6,6 +6,7 @@ import {
   getOAuthProtectedResourceMetadataUrl,
   requireBearerAuth,
 } from '@modelcontextprotocol/express';
+import { OAuthError, OAuthErrorCode } from '@modelcontextprotocol/server';
 import type { OAuthMetadata, OAuthTokenVerifier } from '@modelcontextprotocol/server';
 import type { Express, RequestHandler } from 'express';
 
@@ -47,6 +48,8 @@ interface OIDCDiscoveryDocument {
 // Token verifier using JWKS/JWT validation
 const tokenVerifier: OAuthTokenVerifier = {
   verifyAccessToken: async (token: string) => {
+    // A plain Error here is intentional: an uninitialized JWKS is a server
+    // misconfiguration, not a bad token, so it should surface as 500 server_error.
     if (!JWKS) {
       throw new Error('JWKS not initialized. Call validateOAuthConfig() first.');
     }
@@ -55,8 +58,9 @@ const tokenVerifier: OAuthTokenVerifier = {
       // Check if the token looks like a JWT (three base64url-encoded parts separated by dots)
       const parts = token.split('.');
       if (parts.length !== 3) {
-        throw new Error(
-          'Token is not a valid JWT format (expected 3 parts separated by dots). '
+        throw new OAuthError(
+          OAuthErrorCode.InvalidToken,
+          'Token is not a valid JWT format (expected 3 parts separated by dots).'
         );
       }
 
@@ -83,7 +87,14 @@ const tokenVerifier: OAuthTokenVerifier = {
       if (error instanceof Error) {
         console.error('[auth] JWT verification failed:', error.message);
       }
-      throw error;
+      if (error instanceof OAuthError) {
+        throw error;
+      }
+      // Convert jose failures (bad signature, expired, wrong issuer/audience) into
+      // an OAuthError so requireBearerAuth answers 401 with a WWW-Authenticate
+      // challenge instead of 500. The specific reason stays in the server log
+      // rather than the response body, so callers learn nothing beyond "invalid".
+      throw new OAuthError(OAuthErrorCode.InvalidToken, 'Token verification failed');
     }
   },
 };
