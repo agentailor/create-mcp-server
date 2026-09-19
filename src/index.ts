@@ -19,6 +19,7 @@ async function main() {
       templateType: options!.template,
       withOAuth: options!.oauth,
       withGitInit: options!.git,
+      withSkills: options!.skills,
     });
   }
 }

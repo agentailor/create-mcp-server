@@ -159,6 +159,17 @@ export async function runInteractiveMode(): Promise<void> {
   );
   const withGitInit = gitInitResponse.withGitInit ?? false;
 
+  const skillsResponse = await prompts(
+    {
+      type: 'confirm',
+      name: 'withSkills',
+      message: 'Include the tool-design skill for AI agents?',
+      initial: true,
+    },
+    { onCancel }
+  );
+  const withSkills = skillsResponse.withSkills ?? false;
+
   await generateProject({
     projectName,
     packageManager,
@@ -167,5 +178,6 @@ export async function runInteractiveMode(): Promise<void> {
     templateType,
     withOAuth,
     withGitInit,
+    withSkills,
   });
 }

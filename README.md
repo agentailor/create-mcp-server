@@ -34,6 +34,7 @@ npx @agentailor/create-mcp-server --name=my-server
 | `--template` | `-t` | `stateless` | Accepted for compatibility; SDK v2 serves both modes through one per-request idiom |
 | `--oauth` | — | `false` | Enable OAuth (sdk HTTP only, incompatible with --stdio) |
 | `--no-git` | — | `false` | Skip git initialization |
+| `--no-skills` | — | `false` | Skip adding the tool-design skill |
 | `--help` | `-h` | — | Show help |
 | `--version` | `-V` | — | Show version |
 
@@ -155,6 +156,12 @@ my-mcp-server/
 SDK projects come with a worked example — a small notes server — and a test suite
 that runs green immediately, so there is a working pattern to copy when you add
 your own tools. FastMCP projects ship the example only, without tests, for now.
+
+Projects also get Agentailor's [tool-design](https://github.com/agentailor/skills)
+skill at `.agents/skills/`, so a coding agent working in the project has the
+guidance on hand. It is bundled with the CLI, so this needs no network and adds
+nothing to scaffolding time. Pass `--no-skills` to skip it, and run
+`npx skills update -p -y` inside the project if you want a newer version.
 
 Every project also gets an `AGENTS.md` covering the things that are easy to get
 wrong: how to write a tool an agent can use, how to organize tools as they grow,

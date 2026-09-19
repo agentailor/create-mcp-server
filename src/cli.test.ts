@@ -65,6 +65,7 @@ describe('CLI argument parsing', () => {
       template: 'stateful',
       oauth: false,
       git: false,
+      skills: true,
     });
   });
 
@@ -257,5 +258,26 @@ describe('CLI argument parsing', () => {
     );
 
     consoleError.mockRestore();
+  });
+
+  it('installs the tool-design skill by default', async () => {
+    process.argv = ['node', 'create-mcp-server', '--name=test'];
+    const { parseArguments } = await import('./cli.js');
+    expect(parseArguments().options?.skills).toBe(true);
+  });
+
+  it('skips the skill install with --no-skills', async () => {
+    process.argv = ['node', 'create-mcp-server', '--name=test', '--no-skills'];
+    const { parseArguments } = await import('./cli.js');
+    expect(parseArguments().options?.skills).toBe(false);
+  });
+
+  // They are independent: git can be installed and still not wanted here.
+  it('treats --no-git and --no-skills as orthogonal', async () => {
+    process.argv = ['node', 'create-mcp-server', '--name=test', '--no-git'];
+    const { parseArguments } = await import('./cli.js');
+    const options = parseArguments().options;
+    expect(options?.git).toBe(false);
+    expect(options?.skills).toBe(true);
   });
 });

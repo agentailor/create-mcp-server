@@ -155,6 +155,19 @@ ${projectName}/
   imports so it stays testable on its own.
 - Modify transport configuration in \`src/index.ts\`
 
+## Tool design skill
+
+Agentailor's [tool-design](https://github.com/agentailor/skills) skill is
+included at \`.agents/skills/tool-design/\`, so a coding agent working here has
+the guidance on hand. Commit it so the whole team gets the same copy.
+
+It is the version that shipped with the scaffolding CLI. To check for a newer
+one — your call, not automatic:
+
+\`\`\`bash
+npx skills update -p -y
+\`\`\`
+
 ## Learn More
 
 - [Model Context Protocol](https://modelcontextprotocol.io/)

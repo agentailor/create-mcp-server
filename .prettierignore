@@ -2,3 +2,7 @@ dist/
 node_modules/
 official-examples/
 generated/
+
+# Vendored verbatim from agentailor/skills - must stay byte-identical to
+# upstream, so it is never reformatted. See "The tool-design skill" in AGENTS.md.
+src/assets/
