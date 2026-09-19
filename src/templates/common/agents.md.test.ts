@@ -135,4 +135,32 @@ describe('getAgentsMdTemplate', () => {
       expect(template).not.toContain('npm test');
     });
   });
+
+  describe('tool-design skill', () => {
+    it('should point at the installed skill and how to update it', () => {
+      const template = getAgentsMdTemplate(projectName, sdkHttp);
+      expect(template).toContain('.agents/skills/tool-design/SKILL.md');
+      expect(template).toContain('npx skills update -p -y');
+    });
+
+    it('should say how to add the skill when it is absent', () => {
+      const template = getAgentsMdTemplate(projectName, sdkHttp);
+      expect(template).toContain(
+        'npx skills add agentailor/skills --skill tool-design -a universal'
+      );
+    });
+
+    // The skill is meant to be shared, so .agents/ belongs in version control.
+    it('should say to commit the skill directory', () => {
+      const template = getAgentsMdTemplate(projectName, sdkHttp);
+      expect(template).toContain('Commit `.agents/`');
+    });
+
+    // The copy is vendored, so updating is the user's choice, not automatic.
+    it("should frame the update as the reader's choice", () => {
+      const template = getAgentsMdTemplate(projectName, sdkHttp);
+      expect(template).toContain('yours to run');
+      expect(template).toContain('shipped with the CLI you used');
+    });
+  });
 });

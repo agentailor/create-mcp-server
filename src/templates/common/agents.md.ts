@@ -1,4 +1,5 @@
 import type { CommonTemplateOptions } from './types.js';
+import { SKILLS_UPDATE_COMMAND, SKILLS_INSTALL_HINT, SKILLS_DIR } from '../../skills.js';
 
 /**
  * AGENTS.md for the generated project.
@@ -171,6 +172,28 @@ own.
 `
     : '';
 
+  const skillSection = `
+## The tool-design skill
+
+\`${SKILLS_DIR}/skills/tool-design/SKILL.md\` is the long form of the guidance above,
+with worked examples under \`references/\`. Read it before designing a tool
+surface, not after.
+
+It was copied in when this project was scaffolded, so it is the version that
+shipped with the CLI you used — no network needed, and it will not change
+underneath you. The skill does get updated upstream. To pull a newer copy when
+you want one:
+
+\`\`\`bash
+${SKILLS_UPDATE_COMMAND}
+\`\`\`
+
+That is yours to run, not something this project does for you. If the directory
+is missing entirely, add it with \`${SKILLS_INSTALL_HINT}\`.
+
+Commit \`${SKILLS_DIR}/\` so everyone working on this project gets the same copy.
+`;
+
   const conventions = isSdk
     ? `
 ## Conventions worth keeping
@@ -205,7 +228,7 @@ code.
 ## Layout
 
 ${layout}
-${perRequestSection}${stdioSection}${toolDesignSection}${testingSection}${oauthSection}${conventions}
+${perRequestSection}${stdioSection}${toolDesignSection}${testingSection}${skillSection}${oauthSection}${conventions}
 ## Commands
 
 \`\`\`bash

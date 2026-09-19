@@ -6,6 +6,7 @@ import { getTsconfigTemplate } from './templates/common/tsconfig.json.js';
 import { getGitignoreTemplate } from './templates/common/gitignore.js';
 import { getEnvExampleTemplate } from './templates/common/env.example.js';
 import { getAgentsMdTemplate } from './templates/common/agents.md.js';
+import { copySkill, SKILLS_UPDATE_COMMAND, SKILLS_INSTALL_HINT, SKILLS_DIR } from './skills.js';
 import type {
   CommonTemplateOptions,
   Framework,
@@ -66,6 +67,7 @@ export interface ProjectConfig {
   templateType: TemplateType;
   withOAuth: boolean;
   withGitInit: boolean;
+  withSkills: boolean;
 }
 
 export async function generateProject(config: ProjectConfig): Promise<void> {
@@ -77,6 +79,7 @@ export async function generateProject(config: ProjectConfig): Promise<void> {
     templateType,
     withOAuth,
     withGitInit,
+    withSkills,
   } = config;
 
   const templateOptions: CommonTemplateOptions = {
@@ -186,6 +189,19 @@ export async function generateProject(config: ProjectConfig): Promise<void> {
     }
   }
 
+  // The skill is vendored, so this is a file copy. It never fails the scaffold:
+  // the project is complete without it.
+  let skillCopied = false;
+  if (withSkills) {
+    const result = await copySkill(projectPath);
+    skillCopied = result.copied;
+
+    if (!result.copied) {
+      console.log(`\n  Could not add the tool-design skill (${result.reason}).`);
+      console.log(`  To add it by hand: ${SKILLS_INSTALL_HINT}`);
+    }
+  }
+
   const commands = packageManagerCommands[packageManager];
   const frameworkName = framework === 'fastmcp' ? 'FastMCP' : 'MCP SDK';
 
@@ -194,5 +210,11 @@ export async function generateProject(config: ProjectConfig): Promise<void> {
   console.log(`  cd ${projectName}`);
   console.log(`  ${commands.install}`);
   console.log(`  ${commands.dev}`);
+  if (skillCopied) {
+    console.log(
+      `\nThe tool-design skill is in ${SKILLS_DIR}/skills/. Check for a newer version with:`
+    );
+    console.log(`  ${SKILLS_UPDATE_COMMAND}`);
+  }
   console.log(`\n`);
 }

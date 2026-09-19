@@ -12,6 +12,10 @@ create-mcp-server/
 │   ├── index.ts                    # CLI entry point
 │   ├── cli.ts                      # CLI argument parsing (Commander.js)
 │   ├── cli.test.ts                 # Tests for CLI argument parsing
+│   ├── skills.ts                   # Copies the vendored tool-design skill
+│   ├── skills.test.ts              # Tests for the skill copy
+│   ├── assets/                     # Non-TS files copied into dist/ at build
+│   │   └── skills/tool-design/     # Vendored skill (verbatim from upstream)
 │   ├── interactive.ts              # Interactive prompt flow (prompts library)
 │   ├── project-generator.ts        # Shared project generation logic
 │   └── templates/
@@ -163,6 +167,58 @@ the example has not earned.
 
 Keep this file honest: if the templates change what they emit, this changes too.
 
+## The tool-design skill
+
+Generated projects get Agentailor's [tool-design](https://github.com/agentailor/skills)
+skill at `.agents/skills/tool-design/`, unless `--no-skills` is passed.
+
+**`.agents/`, not `.claude/`.** The ecosystem is converging on tool-agnostic
+locations, the same way `AGENTS.md` replaced `CLAUDE.md`. Agents that only look
+in `.claude/` today are expected to follow. The directory is a single constant,
+`SKILLS_DIR` in `src/skills.ts`, so moving it again is a one-line change.
+
+**It is vendored, not fetched.** The four markdown files live in
+`src/assets/skills/tool-design/` and are copied verbatim into the project by
+`src/skills.ts`. That keeps scaffolding offline and instant, and means a given
+version of this CLI always emits a known version of the skill rather than
+whatever upstream happens to be that day.
+
+The trade is that the vendored copy ages. Generated projects are told so, and
+given `npx skills update -p -y` to pull a newer one — their choice to run, not
+something the scaffold does for them.
+
+Two mechanics to know:
+
+- **`tsc` does not copy markdown.** `npm run build` runs `scripts/copy-assets.mjs`
+  after it, which mirrors `src/assets` into `dist/assets`. `files: ["dist"]`
+  then carries them into the published package. If assets ever go missing from a
+  release, that script is the first place to look.
+- **The vendored files are excluded from formatting and normalisation.**
+  `.gitattributes` marks `src/assets/**` as binary (`-text`) so checkout does not
+  rewrite line endings, and `.prettierignore` excludes `src/assets/` so
+  `format:check` does not try to reformat someone else's markdown. Both are
+  required: without the second, CI fails on four files it should never touch. A
+  test asserts the frontmatter survives.
+
+### Refreshing the vendored skill
+
+When the skill changes upstream, re-run the skills CLI into a scratch directory
+and copy the result over `src/assets/skills/tool-design/`:
+
+```bash
+cd $(mktemp -d)
+npx -y skills@latest add agentailor/skills --skill tool-design -a universal -y
+cp -r .agents/skills/tool-design <repo>/src/assets/skills/
+```
+
+Then `git diff` to review what changed before committing. Two notes on that
+command: `-a universal` is what writes to `.agents/` rather than a tool-specific
+directory, and an unrecognised slug is rejected while the CLI still exits 0 and
+writes nothing — so check the files landed rather than trusting the exit code.
+
+`.agents/` is deliberately **not** in the generated `.gitignore`: the skill is
+meant to be committed so the whole team gets the same copy.
+
 ## Publishing
 
 ```bash
@@ -195,6 +251,7 @@ npx @agentailor/create-mcp-server --name=my-server [options]
 | `--template` | `-t` | `stateless` | stateless, stateful — accepted for compatibility; both produce the same SDK v2 project |
 | `--oauth` | — | `false` | flag (sdk HTTP only, incompatible with --stdio) |
 | `--no-git` | — | `false` | flag |
+| `--no-skills` | — | `false` | flag; skips writing the tool-design skill |
 
 ## Frameworks
 

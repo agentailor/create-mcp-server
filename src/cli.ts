@@ -11,6 +11,7 @@ export interface CLIOptions {
   template: TemplateType;
   oauth: boolean;
   git: boolean;
+  skills: boolean;
 }
 
 export interface ParseResult {
@@ -58,7 +59,8 @@ export function parseArguments(): ParseResult {
     )
     .option('--stdio', 'Use stdio transport instead of HTTP', false)
     .option('--oauth', 'Enable OAuth authentication (sdk HTTP only)', false)
-    .option('--no-git', 'Skip git repository initialization');
+    .option('--no-git', 'Skip git repository initialization')
+    .option('--no-skills', 'Skip adding the tool-design skill');
 
   program.parse();
 
@@ -112,6 +114,7 @@ export function parseArguments(): ParseResult {
       template: opts.template as TemplateType,
       oauth: opts.oauth,
       git: opts.git, // Commander handles --no-git -> git: false
+      skills: opts.skills, // Commander handles --no-skills -> skills: false
     },
   };
 }
