@@ -5,6 +5,7 @@ import { getPackageJsonTemplate } from './templates/common/package.json.js';
 import { getTsconfigTemplate } from './templates/common/tsconfig.json.js';
 import { getGitignoreTemplate } from './templates/common/gitignore.js';
 import { getEnvExampleTemplate } from './templates/common/env.example.js';
+import { getAgentsMdTemplate } from './templates/common/agents.md.js';
 import type {
   CommonTemplateOptions,
   Framework,
@@ -161,7 +162,8 @@ export async function generateProject(config: ProjectConfig): Promise<void> {
       getTsconfigTemplate({ withTests: framework === 'sdk' })
     ),
     writeFile(join(projectPath, '.gitignore'), getGitignoreTemplate()),
-    writeFile(join(projectPath, '.env.example'), getEnvExampleTemplate(templateOptions))
+    writeFile(join(projectPath, '.env.example'), getEnvExampleTemplate(templateOptions)),
+    writeFile(join(projectPath, 'AGENTS.md'), getAgentsMdTemplate(projectName, templateOptions))
   );
 
   // Deployment files for HTTP transport only (stdio servers are not HTTP services)

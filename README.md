@@ -148,12 +148,18 @@ my-mcp-server/
 ├── tsconfig.json
 ├── .gitignore
 ├── .env.example
+├── AGENTS.md         # Working notes for humans and coding agents
 └── README.md
 ```
 
 SDK projects come with a worked example — a small notes server — and a test suite
 that runs green immediately, so there is a working pattern to copy when you add
 your own tools. FastMCP projects ship the example only, without tests, for now.
+
+Every project also gets an `AGENTS.md` covering the things that are easy to get
+wrong: how to write a tool an agent can use, how to organize tools as they grow,
+and the transport-specific traps (state is per-request over HTTP; stdout belongs
+to the protocol over stdio).
 
 **Scripts:**
 - `npm run dev` — build and start the server
