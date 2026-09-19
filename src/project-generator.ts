@@ -19,6 +19,8 @@ import {
   getToolsTemplate as getSdkToolsTemplate,
   getPromptsTemplate as getSdkPromptsTemplate,
   getResourcesTemplate as getSdkResourcesTemplate,
+  getStoreTestTemplate as getSdkStoreTestTemplate,
+  getServerTestTemplate as getSdkServerTestTemplate,
 } from './templates/sdk/stateless/index.js';
 import { getAuthTemplate as getSdkAuthTemplate } from './templates/sdk/stateful/index.js';
 import {
@@ -141,7 +143,10 @@ export async function generateProject(config: ProjectConfig): Promise<void> {
       writeFile(join(srcPath, 'tools.ts'), getSdkToolsTemplate()),
       writeFile(join(srcPath, 'prompts.ts'), getSdkPromptsTemplate()),
       writeFile(join(srcPath, 'resources.ts'), getSdkResourcesTemplate()),
-      writeFile(join(srcPath, 'notes-store.ts'), getSdkStoreTemplate())
+      writeFile(join(srcPath, 'notes-store.ts'), getSdkStoreTemplate()),
+      // Two layers: the store in isolation, and the payload an agent reads.
+      writeFile(join(srcPath, 'notes-store.test.ts'), getSdkStoreTestTemplate()),
+      writeFile(join(srcPath, 'server.test.ts'), getSdkServerTestTemplate())
     );
   }
 
@@ -151,7 +156,10 @@ export async function generateProject(config: ProjectConfig): Promise<void> {
       join(projectPath, 'package.json'),
       getPackageJsonTemplate(projectName, templateOptions)
     ),
-    writeFile(join(projectPath, 'tsconfig.json'), getTsconfigTemplate()),
+    writeFile(
+      join(projectPath, 'tsconfig.json'),
+      getTsconfigTemplate({ withTests: framework === 'sdk' })
+    ),
     writeFile(join(projectPath, '.gitignore'), getGitignoreTemplate()),
     writeFile(join(projectPath, '.env.example'), getEnvExampleTemplate(templateOptions))
   );

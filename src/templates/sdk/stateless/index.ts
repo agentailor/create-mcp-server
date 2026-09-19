@@ -106,3 +106,5 @@ export { getStoreTemplate } from './store.js';
 export { getToolsTemplate } from './tools.js';
 export { getPromptsTemplate } from './prompts.js';
 export { getResourcesTemplate } from './resources.js';
+export { getStoreTestTemplate } from './store-test.js';
+export { getServerTestTemplate } from './server-test.js';

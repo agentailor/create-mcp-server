@@ -11,3 +11,5 @@ export { getStoreTemplate } from '../stateless/store.js';
 export { getToolsTemplate } from '../stateless/tools.js';
 export { getPromptsTemplate } from '../stateless/prompts.js';
 export { getResourcesTemplate } from '../stateless/resources.js';
+export { getStoreTestTemplate } from '../stateless/store-test.js';
+export { getServerTestTemplate } from '../stateless/server-test.js';

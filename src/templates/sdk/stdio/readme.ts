@@ -12,6 +12,7 @@ export function getReadmeTemplate(projectName: string, options?: TemplateOptions
       inspectTools: 'npm run inspect:tools',
       inspectPrompts: 'npm run inspect:prompts',
       inspectResources: 'npm run inspect:resources',
+      test: 'npm test',
     },
     pnpm: {
       install: 'pnpm install',
@@ -21,6 +22,7 @@ export function getReadmeTemplate(projectName: string, options?: TemplateOptions
       inspectTools: 'pnpm inspect:tools',
       inspectPrompts: 'pnpm inspect:prompts',
       inspectResources: 'pnpm inspect:resources',
+      test: 'pnpm test',
     },
     yarn: {
       install: 'yarn',
@@ -30,6 +32,7 @@ export function getReadmeTemplate(projectName: string, options?: TemplateOptions
       inspectTools: 'yarn inspect:tools',
       inspectPrompts: 'yarn inspect:prompts',
       inspectResources: 'yarn inspect:resources',
+      test: 'yarn test',
     },
   }[packageManager];
 
@@ -112,6 +115,21 @@ well. Notes are held in memory, so they last until the process restarts.
 ### Prompts
 
 - **summarize-notes** - Summarize the notes carrying a given tag
+
+## Tests
+
+\`\`\`bash
+${commands.test}
+\`\`\`
+
+Two layers: \`src/notes-store.test.ts\` covers the data layer on its own, and
+\`src/server.test.ts\` drives a real MCP client over an in-memory transport and
+asserts on the payload a tool actually returns.
+
+These are a worked example, not a quota. Each one pins something a tool's
+description promises but nothing else checks - that a truncated list says so,
+that an error names a next step, that an unknown filter is distinguishable from
+an empty result. When you add a tool, one test in that spirit is enough.
 
 ## Project Structure
 

@@ -27,6 +27,10 @@ const TEMPLATE_PACKAGES = [
   '@modelcontextprotocol/express',
   '@modelcontextprotocol/node',
   '@modelcontextprotocol/inspector',
+  // devDependency of generated SDK projects, for the in-memory test harness.
+  // Must track @modelcontextprotocol/server's major; the script cannot enforce
+  // that, so check it when a major is flagged.
+  '@modelcontextprotocol/client',
   'express',
   'hono',
   'fastmcp',
@@ -34,6 +38,7 @@ const TEMPLATE_PACKAGES = [
   'dotenv',
   'jose',
   'typescript',
+  'vitest',
   '@types/node',
   '@types/express',
 ];

@@ -7,6 +7,8 @@ import {
   getToolsTemplate,
   getPromptsTemplate,
   getResourcesTemplate,
+  getStoreTestTemplate,
+  getServerTestTemplate,
 } from './index.js';
 
 describe('sdk/stateless templates', () => {
@@ -293,6 +295,54 @@ describe('sdk/stateless templates', () => {
     it('should provide a seam for seeding in tests', () => {
       const template = getStoreTemplate();
       expect(template).toContain('export function seedForTests(');
+    });
+  });
+
+  describe('generated test templates', () => {
+    it('should exercise the store without a transport', () => {
+      const template = getStoreTestTemplate();
+      expect(template).toContain("import * as notes from './notes-store.js'");
+      expect(template).not.toContain('@modelcontextprotocol/client');
+      expect(template).not.toContain('InMemoryTransport');
+    });
+
+    it('should pin the store invariants the tools depend on', () => {
+      const template = getStoreTestTemplate();
+      expect(template).toContain('reports the full match count');
+      expect(template).toContain('distinguishes an unknown tag from a tag with no notes');
+      expect(template).toContain('seedForTests');
+    });
+
+    it('should drive the server through a real client', () => {
+      const template = getServerTestTemplate();
+      expect(template).toContain("import { Client } from '@modelcontextprotocol/client'");
+      expect(template).toContain('InMemoryTransport.createLinkedPair()');
+      expect(template).toContain("import { getServer } from './server.js'");
+    });
+
+    it('should assert on the parsed payload, not the result wrapper', () => {
+      const template = getServerTestTemplate();
+      expect(template).toContain('JSON.parse(first.text)');
+      expect(template).toContain('result.truncated');
+      expect(template).toContain('result.matched');
+    });
+
+    it('should cover the contracts that would otherwise fail silently', () => {
+      const template = getServerTestTemplate();
+      expect(template).toContain('says so when a result is truncated');
+      expect(template).toContain('does not claim truncation when everything fits');
+      expect(template).toContain('distinguishes an unknown tag from a tag with no notes');
+      expect(template).toContain('documents every tool and every parameter');
+    });
+
+    // Emitted code with a stray backslash-backtick fails to parse, and the
+    // template functions are the only place that can introduce one.
+    it('should not emit escaped template-literal syntax', () => {
+      const backslash = String.fromCharCode(92);
+      for (const template of [getStoreTestTemplate(), getServerTestTemplate()]) {
+        expect(template).not.toContain(backslash + '`');
+        expect(template).not.toContain(backslash + '$');
+      }
     });
   });
 });
