@@ -1,5 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { getServerTemplate, getIndexTemplate, getReadmeTemplate } from './index.js';
+import {
+  getServerTemplate,
+  getIndexTemplate,
+  getReadmeTemplate,
+  getStoreTemplate,
+  getToolsTemplate,
+  getPromptsTemplate,
+  getResourcesTemplate,
+} from './index.js';
 
 describe('sdk/stateless templates', () => {
   const projectName = 'test-project';
@@ -20,22 +28,21 @@ describe('sdk/stateless templates', () => {
       expect(template).not.toContain('@modelcontextprotocol/sdk');
     });
 
-    it('should include example prompt', () => {
+    it('should compose the primitives rather than defining them inline', () => {
       const template = getServerTemplate(projectName);
-      expect(template).toContain('greeting-template');
-      expect(template).toContain('registerPrompt');
+      expect(template).toContain("import { registerTools } from './tools.js'");
+      expect(template).toContain("import { registerPrompts } from './prompts.js'");
+      expect(template).toContain("import { registerResources } from './resources.js'");
+      expect(template).toContain('registerTools(server)');
+      expect(template).toContain('registerPrompts(server)');
+      expect(template).toContain('registerResources(server)');
     });
 
-    it('should include example tool', () => {
+    it('should not register primitives directly', () => {
       const template = getServerTemplate(projectName);
-      expect(template).toContain('greet');
-      expect(template).toContain('registerTool');
-    });
-
-    it('should declare schemas as Standard Schema via z.object', () => {
-      const template = getServerTemplate(projectName);
-      expect(template).toContain('inputSchema: z.object(');
-      expect(template).toContain('argsSchema: z.object(');
+      expect(template).not.toContain('server.registerTool(');
+      expect(template).not.toContain('server.registerPrompt(');
+      expect(template).not.toContain('server.registerResource(');
     });
 
     it('should not use the deprecated logging subsystem', () => {
@@ -43,11 +50,94 @@ describe('sdk/stateless templates', () => {
       expect(template).not.toContain('sendLoggingMessage');
       expect(template).not.toContain('capabilities: { logging: {} }');
     });
+  });
 
-    it('should include example resource', () => {
-      const template = getServerTemplate(projectName);
-      expect(template).toContain('greeting-resource');
+  describe('getToolsTemplate', () => {
+    it('should register the notes tools', () => {
+      const template = getToolsTemplate();
+      expect(template).toContain('registerTool');
+      expect(template).toContain("'list_notes'");
+      expect(template).toContain("'get_note'");
+      expect(template).toContain("'create_note'");
+    });
+
+    // Most MCP clients prepend the server name, so a hardcoded prefix would
+    // surface as "my-server_notes_list".
+    it('should not hardcode a server namespace into tool names', () => {
+      const template = getToolsTemplate();
+      expect(template).not.toContain("'notes_list'");
+      expect(template).not.toContain("'notes_get'");
+      expect(template).not.toContain("'notes_create'");
+    });
+
+    it('should read its data from the store module', () => {
+      const template = getToolsTemplate();
+      expect(template).toContain("import * as notes from './notes-store.js'");
+    });
+
+    it('should declare schemas as Standard Schema via z.object', () => {
+      const template = getToolsTemplate();
+      expect(template).toContain('inputSchema: z.object(');
+    });
+
+    it('should signal truncation rather than silently capping', () => {
+      const template = getToolsTemplate();
+      expect(template).toContain('truncated');
+      expect(template).toContain('matched');
+      expect(template).toContain('hint');
+      expect(template).toContain('DEFAULT_LIMIT');
+    });
+
+    it('should distinguish an unknown tag from a tag with no notes', () => {
+      const template = getToolsTemplate();
+      expect(template).toContain('UnknownTagError');
+      expect(template).toContain('knownTags');
+    });
+
+    it('should return actionable errors as isError, not thrown exceptions', () => {
+      const template = getToolsTemplate();
+      expect(template).toContain('isError: true');
+      expect(template).toContain('function toolError');
+    });
+
+    it('should point the agent at the sibling tool by its real name', () => {
+      const template = getToolsTemplate();
+      expect(template).toContain('Call list_notes');
+    });
+  });
+
+  describe('getPromptsTemplate', () => {
+    it('should register the example prompt', () => {
+      const template = getPromptsTemplate();
+      expect(template).toContain('registerPrompt');
+      expect(template).toContain('summarize-notes');
+      expect(template).toContain('argsSchema: z.object(');
+    });
+
+    it('should reference the tool by its unprefixed name', () => {
+      const template = getPromptsTemplate();
+      expect(template).toContain('list_notes');
+      expect(template).not.toContain('notes_list');
+    });
+  });
+
+  describe('getResourcesTemplate', () => {
+    it('should register a resource template for a single note', () => {
+      const template = getResourcesTemplate();
       expect(template).toContain('registerResource');
+      expect(template).toContain("new ResourceTemplate('notes://{id}'");
+    });
+
+    // The v2 type declares `list` as required (not optional), so omitting it
+    // fails tsc with TS2741 in the generated project.
+    it('should pass list to ResourceTemplate', () => {
+      const template = getResourcesTemplate();
+      expect(template).toContain('list: async ()');
+    });
+
+    it('should read its data from the store module', () => {
+      const template = getResourcesTemplate();
+      expect(template).toContain("import * as notes from './notes-store.js'");
     });
   });
 
@@ -164,6 +254,45 @@ describe('sdk/stateless templates', () => {
       expect(template).toContain('yarn build');
       expect(template).toContain('yarn start');
       expect(template).not.toContain('npm run');
+    });
+  });
+
+  describe('getStoreTemplate', () => {
+    it('should not import anything from the MCP SDK', () => {
+      const template = getStoreTemplate();
+      expect(template).not.toContain('@modelcontextprotocol');
+    });
+
+    it('should hold notes at module scope, not per call', () => {
+      const template = getStoreTemplate();
+      // The MCP server factory runs once per request; state kept on the server
+      // would be discarded between calls.
+      expect(template).toContain('const notes = new Map<string, Note>()');
+    });
+
+    it('should return the unfiltered total alongside the page', () => {
+      const template = getStoreTemplate();
+      // Callers need both to report truncation honestly.
+      expect(template).toContain('rows: Note[]');
+      expect(template).toContain('total: number');
+      expect(template).toContain('total: matches.length');
+    });
+
+    it('should expose the tags in use so callers can detect a typo', () => {
+      const template = getStoreTemplate();
+      expect(template).toContain('export function knownTags()');
+      expect(template).toContain('UnknownTagError');
+    });
+
+    it('should validate the title against a documented bound', () => {
+      const template = getStoreTemplate();
+      expect(template).toContain('MAX_TITLE_LENGTH');
+      expect(template).toContain('RangeError');
+    });
+
+    it('should provide a seam for seeding in tests', () => {
+      const template = getStoreTemplate();
+      expect(template).toContain('export function seedForTests(');
     });
   });
 });
