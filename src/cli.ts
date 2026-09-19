@@ -20,7 +20,7 @@ export interface ParseResult {
 }
 
 const NAME_REGEX = /^[a-z0-9-_]+$/i;
-const VERSION = '0.7.1';
+const VERSION = '0.8.0';
 
 function validateName(value: string): string {
   if (!NAME_REGEX.test(value)) {
