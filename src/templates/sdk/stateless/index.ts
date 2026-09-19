@@ -102,3 +102,7 @@ process.on('SIGINT', async () => {
 
 export { getServerTemplate } from './server.js';
 export { getReadmeTemplate } from './readme.js';
+export { getStoreTemplate } from './store.js';
+export { getToolsTemplate } from './tools.js';
+export { getPromptsTemplate } from './prompts.js';
+export { getResourcesTemplate } from './resources.js';

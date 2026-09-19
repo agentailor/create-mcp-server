@@ -78,33 +78,52 @@ You can also call tools directly:
 
 \`\`\`bash
 # Call a tool
-npx @modelcontextprotocol/inspector --cli node dist/index.js --method tools/call --tool-name greet --tool-arg name=World
+npx @modelcontextprotocol/inspector --cli node dist/index.js --method tools/call --tool-name create_note --tool-arg title="Ship v2" --tool-arg body="Draft the checklist"
 \`\`\`
 
 ## Included Examples
 
-This server comes with example implementations to help you get started:
-
-### Prompts
-
-- **greeting-template** - A simple greeting prompt that takes a name parameter
+A small notes server, included as a worked example of tools an agent can use
+well. Notes are held in memory, so they last until the process restarts.
 
 ### Tools
 
-- **greet** - Greets a user by name. Parameters:
-  - \`name\`: Name of the person to greet
+- **list_notes** - List notes, newest first, optionally filtered by tag.
+  - \`tag\` (optional): Only return notes carrying this tag
+  - \`limit\` (optional): Maximum to return, 1-100, defaults to 20
+
+  Returns the page plus \`matched\`, \`returned\` and \`truncated\`, so a capped
+  result says so and suggests how to narrow it. An unknown tag is reported as
+  an error listing the tags that do exist, rather than as an empty list.
+
+- **get_note** - Read one note in full by its id.
+  - \`id\`: Note id as returned by \`list_notes\` or \`create_note\`
+
+- **create_note** - Save a note and return it, including its new id.
+  - \`title\`: Non-empty, at most 120 characters
+  - \`body\`: Plain text
+  - \`tags\` (optional): Tags used to filter in \`list_notes\`
 
 ### Resources
 
-- **greeting-resource** - A simple text resource at \`https://example.com/greetings/default\`
+- **notes://{id}** - A single note as JSON. Listing the resource enumerates
+  the saved notes.
+
+### Prompts
+
+- **summarize-notes** - Summarize the notes carrying a given tag
 
 ## Project Structure
 
 \`\`\`
 ${projectName}/
 ├── src/
-│   ├── server.ts     # MCP server definition (tools, prompts, resources)
-│   └── index.ts      # stdio transport startup
+│   ├── server.ts        # Creates the McpServer and registers the primitives
+│   ├── tools.ts         # Tool definitions
+│   ├── prompts.ts       # Prompt definitions
+│   ├── resources.ts     # Resource definitions
+│   ├── notes-store.ts   # Example data layer, no MCP imports
+│   └── index.ts         # stdio transport startup
 ├── package.json
 ├── tsconfig.json
 └── README.md
@@ -112,7 +131,10 @@ ${projectName}/
 
 ## Customization
 
-- Add new tools, prompts, and resources in \`src/server.ts\`
+- Add tools in \`src/tools.ts\`, prompts in \`src/prompts.ts\`, resources in
+  \`src/resources.ts\`. \`src/server.ts\` only wires them together.
+- Replace the example's data layer in \`src/notes-store.ts\`. Keep it free of MCP
+  imports so it stays testable on its own.
 - Modify transport configuration in \`src/index.ts\`
 
 ## Learn More

@@ -15,6 +15,10 @@ import {
   getServerTemplate as getSdkStatelessServerTemplate,
   getIndexTemplate as getSdkStatelessIndexTemplate,
   getReadmeTemplate as getSdkStatelessReadmeTemplate,
+  getStoreTemplate as getSdkStoreTemplate,
+  getToolsTemplate as getSdkToolsTemplate,
+  getPromptsTemplate as getSdkPromptsTemplate,
+  getResourcesTemplate as getSdkResourcesTemplate,
 } from './templates/sdk/stateless/index.js';
 import { getAuthTemplate as getSdkAuthTemplate } from './templates/sdk/stateful/index.js';
 import {
@@ -129,6 +133,16 @@ export async function generateProject(config: ProjectConfig): Promise<void> {
     if (withOAuth) {
       filesToWrite.push(writeFile(join(srcPath, 'auth.ts'), templates.getAuthTemplate()));
     }
+  }
+
+  // server.ts only composes these; they are identical on both SDK transports.
+  if (framework === 'sdk') {
+    filesToWrite.push(
+      writeFile(join(srcPath, 'tools.ts'), getSdkToolsTemplate()),
+      writeFile(join(srcPath, 'prompts.ts'), getSdkPromptsTemplate()),
+      writeFile(join(srcPath, 'resources.ts'), getSdkResourcesTemplate()),
+      writeFile(join(srcPath, 'notes-store.ts'), getSdkStoreTemplate())
+    );
   }
 
   // Common files for all templates
