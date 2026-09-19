@@ -134,9 +134,15 @@ SDK v2 serves every HTTP request through a single per-request idiom: `createMcpH
 ```
 my-mcp-server/
 ├── src/
-│   ├── server.ts     # MCP server (tools, prompts, resources)
-│   ├── index.ts      # Express app and transport setup
-│   └── auth.ts       # OAuth middleware (if enabled)
+│   ├── server.ts             # Creates the server, registers the primitives
+│   ├── tools.ts              # Tool definitions
+│   ├── prompts.ts            # Prompt definitions
+│   ├── resources.ts          # Resource definitions
+│   ├── notes-store.ts        # Example data layer (no MCP imports)
+│   ├── notes-store.test.ts   # Store unit tests
+│   ├── server.test.ts        # Tests driven through a real MCP client
+│   ├── index.ts              # Express app and transport setup
+│   └── auth.ts               # OAuth middleware (if enabled)
 ├── Dockerfile        # Production-ready Docker build
 ├── package.json
 ├── tsconfig.json
@@ -145,8 +151,13 @@ my-mcp-server/
 └── README.md
 ```
 
+SDK projects come with a worked example — a small notes server — and a test suite
+that runs green immediately, so there is a working pattern to copy when you add
+your own tools. FastMCP projects ship the example only, without tests, for now.
+
 **Scripts:**
 - `npm run dev` — build and start the server
+- `npm test` — run the test suite (SDK projects)
 - `npm run inspect` — open MCP Inspector (update URL in `package.json` if needed)
 
 ## Learning Resources

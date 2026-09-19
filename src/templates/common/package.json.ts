@@ -8,6 +8,9 @@ export function getPackageJsonTemplate(
   const framework = options?.framework ?? 'sdk';
   const transport = options?.transport ?? 'http';
 
+  // Tests ship with SDK projects only; FastMCP has no test setup yet.
+  const withTests = framework === 'sdk';
+
   let dependencies: Record<string, string>;
   let devDependencies: Record<string, string>;
 
@@ -18,6 +21,12 @@ export function getPackageJsonTemplate(
   };
   const zodDependency = { zod: '^4.6.5' };
   const dotEnvDependency = { dotenv: '^18.0.1' };
+  // The client drives the server over an in-memory transport in the generated
+  // tests, so it must track @modelcontextprotocol/server's major.
+  const testDevDependencies = {
+    vitest: '^5.0.1',
+    '@modelcontextprotocol/client': '^2.0.0',
+  };
 
   if (framework === 'fastmcp') {
     // FastMCP pulls in @modelcontextprotocol/sdk v1 itself, so this branch
@@ -41,6 +50,7 @@ export function getPackageJsonTemplate(
 
     devDependencies = {
       ...commonDevDependencies,
+      ...testDevDependencies,
     };
   } else {
     // hono is a peer dependency of @modelcontextprotocol/node, so the generated
@@ -62,6 +72,7 @@ export function getPackageJsonTemplate(
     devDependencies = {
       '@types/express': '^5.0.6',
       ...commonDevDependencies,
+      ...testDevDependencies,
     };
   }
 
@@ -83,6 +94,7 @@ export function getPackageJsonTemplate(
       build: 'tsc',
       dev: 'tsc && node dist/index.js',
       start: 'node dist/index.js',
+      ...(withTests ? { test: 'vitest run', 'test:watch': 'vitest' } : {}),
       ...inspectScripts,
     },
     dependencies,

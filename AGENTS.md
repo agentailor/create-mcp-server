@@ -27,8 +27,14 @@ create-mcp-server/
 │       │   ├── index.ts            # Barrel exports
 │       │   └── templates.test.ts   # Tests for deployment templates
 │       ├── sdk/                    # Official MCP SDK v2 templates
-│       │   ├── stateless/          # Shared HTTP template (source of truth)
-│       │   │   ├── server.ts       # MCP server definition template
+│       │   ├── stateless/          # Shared SDK templates (source of truth)
+│       │   │   ├── server.ts       # Composition root (registers the primitives)
+│       │   │   ├── tools.ts        # Tool definitions template
+│       │   │   ├── prompts.ts      # Prompt definitions template
+│       │   │   ├── resources.ts    # Resource definitions template
+│       │   │   ├── store.ts        # notes-store.ts template (no MCP imports)
+│       │   │   ├── store-test.ts   # notes-store.test.ts template
+│       │   │   ├── server-test.ts  # server.test.ts template
 │       │   │   ├── index.ts        # getIndexTemplate (createMcpHandler + toNodeHandler)
 │       │   │   ├── readme.ts       # README.md template (OAuth-aware)
 │       │   │   └── templates.test.ts
@@ -109,6 +115,23 @@ Two rules follow from that:
 - **`auth.ts` loads the env itself.** ES imports are hoisted, so `auth.ts` is evaluated before `index.ts` runs `config()`. Without its own load, its module-scope `CONFIG` reads empty values and OAuth breaks silently. Keep the `config()` call above `CONFIG`.
 - **The stdio template must never load dotenv.** stdout is the protocol channel there. A test asserts the emitted index contains no `dotenv`.
 
+## Generated project tests
+
+SDK projects ship a working test setup; FastMCP does not yet. Two layers, from
+`src/templates/sdk/stateless/store-test.ts` and `server-test.ts`:
+
+- **`notes-store.test.ts`** exercises the store with no MCP involved — fast, no transport.
+- **`server.test.ts`** drives a real `Client` over `InMemoryTransport.createLinkedPair()` and asserts on the **parsed tool payload**, which is the surface an agent actually reads. A tool can be internally correct and still return something misleading.
+
+**Keep the emitted suite small and exemplary.** It is a template people copy, so its size sets an expectation. Every test must pin something a tool's *description* promises and nothing else checks — truncation signalled, errors actionable, an unknown filter distinguishable from an empty result. Do not add tests that exercise the example's own data structures: a test that a `Map` stores things teaches nothing about tool design and inflates what a reader thinks is required. Nine tests is the current budget, and adding one should mean retiring one.
+
+Notes for editing these:
+
+- **No `vitest.config.ts` is emitted, and none is needed.** Vitest discovers `src/**/*.test.ts` and handles TypeScript out of the box.
+- **`tsconfig.json` excludes `src/**/*.test.ts`.** Without it the tests compile into `dist/` and ship in the Docker production image. `getTsconfigTemplate({ withTests })` controls this; it is on for SDK projects only.
+- **The emitted test code avoids template literals entirely**, using string concatenation instead. Nesting a template literal inside the template literal that generates it needs `\\\`` and `\\\${`, and getting that wrong emits a stray backslash that fails to parse. A test asserts no escaped template-literal syntax reaches the output.
+- **`@modelcontextprotocol/client` must track `@modelcontextprotocol/server`'s major.** Both are in `TEMPLATE_PACKAGES`, but the update script cannot enforce the pairing — check it whenever a major is flagged.
+
 ## Publishing
 
 ```bash
@@ -180,9 +203,7 @@ Features:
 - Express.js via `createMcpExpressApp` + `toNodeHandler`
 - Single `app.all('/mcp', ...)` route — the handler owns method dispatch
 - Serves protocol `2026-07-28`; 2025-era clients handled via the default `legacy: 'stateless'`
-- Example prompt (`greeting-template`)
-- Example tool (`greet`)
-- Example resource (`greeting-resource`)
+- The notes example: `list_notes` / `get_note` / `create_note`, a `notes://{id}` resource template, and a `summarize-notes` prompt
 - Health check at `GET /health`
 - Environment variable support for PORT and ALLOWED_HOSTS
 - **Optional OAuth authentication** (`withOAuth`)
@@ -224,7 +245,7 @@ A stdio MCP server using SDK v2. Uses `serveStdio` — for local clients like Cl
 Features:
 - `serveStdio(() => getServer())` from `@modelcontextprotocol/server/stdio` (no HTTP server, no Express)
 - Pins one server instance per connection; negotiates protocol era from the opening exchange
-- Same example prompt, tool, and resource as the shared HTTP template
+- Same example tools, prompt, and resource as the shared HTTP template
 - No PORT/ALLOWED_HOSTS environment variables
 - No Dockerfile generated (stdio servers are run directly)
 - MCP Inspector CLI mode (`mcp-inspector --cli node dist/index.js`)
@@ -244,9 +265,15 @@ Generated project structure for HTTP templates (+auth.ts when OAuth enabled for 
 ```
 {project-name}/
 ├── src/
-│   ├── server.ts     # MCP server with tools/prompts/resources
-│   ├── index.ts      # Server startup configuration
-│   └── auth.ts       # OAuth middleware (SDK HTTP + OAuth only)
+│   ├── server.ts             # Creates the McpServer, registers the primitives
+│   ├── tools.ts              # Tool definitions            (SDK only)
+│   ├── prompts.ts            # Prompt definitions          (SDK only)
+│   ├── resources.ts          # Resource definitions        (SDK only)
+│   ├── notes-store.ts        # Example data layer          (SDK only)
+│   ├── notes-store.test.ts   # Store unit tests            (SDK only)
+│   ├── server.test.ts        # Payload-level tests         (SDK only)
+│   ├── index.ts              # Server startup configuration
+│   └── auth.ts               # OAuth middleware (SDK HTTP + OAuth only)
 ├── Dockerfile        # Multi-stage Docker build
 ├── .dockerignore     # Docker ignore file
 ├── package.json
@@ -260,8 +287,14 @@ Generated project structure for stdio templates (no Dockerfile):
 ```
 {project-name}/
 ├── src/
-│   ├── server.ts     # MCP server with tools/prompts/resources
-│   └── index.ts      # stdio transport startup
+│   ├── server.ts             # Creates the McpServer, registers the primitives
+│   ├── tools.ts              # Tool definitions            (SDK only)
+│   ├── prompts.ts            # Prompt definitions          (SDK only)
+│   ├── resources.ts          # Resource definitions        (SDK only)
+│   ├── notes-store.ts        # Example data layer          (SDK only)
+│   ├── notes-store.test.ts   # Store unit tests            (SDK only)
+│   ├── server.test.ts        # Payload-level tests         (SDK only)
+│   └── index.ts              # stdio transport startup
 ├── package.json
 ├── tsconfig.json
 ├── .gitignore
