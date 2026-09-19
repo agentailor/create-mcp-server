@@ -1,5 +1,5 @@
 export function getAuthTemplate(): string {
-  return `import 'dotenv/config';
+  return `import { config } from 'dotenv';
 import { createRemoteJWKSet, jwtVerify, type JWTPayload, type JWTVerifyGetKey } from 'jose';
 import {
   mcpAuthMetadataRouter,
@@ -9,6 +9,10 @@ import {
 import { OAuthError, OAuthErrorCode } from '@modelcontextprotocol/server';
 import type { OAuthMetadata, OAuthTokenVerifier } from '@modelcontextprotocol/server';
 import type { Express, RequestHandler } from 'express';
+
+// Imports are hoisted, so this runs before index.ts's own config() call - load
+// the env here too, or CONFIG below reads empty values.
+config({ quiet: true });
 
 // OAuth configuration from environment variables
 const CONFIG = {

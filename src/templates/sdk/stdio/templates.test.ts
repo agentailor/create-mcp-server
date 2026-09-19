@@ -66,6 +66,12 @@ describe('sdk/stdio templates', () => {
       expect(template).toContain("console.error('MCP Server running on stdio')");
       expect(template).not.toContain('console.log');
     });
+
+    // stdout is the protocol channel here - keep dotenv off this path entirely.
+    it('should not load dotenv', () => {
+      const template = getIndexTemplate();
+      expect(template).not.toContain('dotenv');
+    });
   });
 
   describe('getReadmeTemplate', () => {

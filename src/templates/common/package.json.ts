@@ -12,18 +12,18 @@ export function getPackageJsonTemplate(
   let devDependencies: Record<string, string>;
 
   const commonDevDependencies = {
-    typescript: '^6.0.3',
-    '@modelcontextprotocol/inspector': '^2.0.0',
-    '@types/node': '^26.0.0',
+    typescript: '^7.0.2',
+    '@modelcontextprotocol/inspector': '^2.7.0',
+    '@types/node': '^26.6.2',
   };
-  const zodDependency = { zod: '^4.4.3' };
-  const dotEnvDependency = { dotenv: '^17.4.2' };
+  const zodDependency = { zod: '^4.6.5' };
+  const dotEnvDependency = { dotenv: '^18.0.1' };
 
   if (framework === 'fastmcp') {
     // FastMCP pulls in @modelcontextprotocol/sdk v1 itself, so this branch
     // stays on v1 and must not gain the v2 packages.
     dependencies = {
-      fastmcp: '^4.3.2',
+      fastmcp: '^4.20.14',
       ...zodDependency,
       ...dotEnvDependency,
     };
@@ -50,13 +50,13 @@ export function getPackageJsonTemplate(
       '@modelcontextprotocol/express': '^2.0.0',
       '@modelcontextprotocol/node': '^2.0.0',
       express: '^5.2.1',
-      hono: '^4.11.5',
+      hono: '^4.13.8',
       ...zodDependency,
       ...dotEnvDependency,
     };
 
     if (withOAuth) {
-      dependencies['jose'] = '^6.2.3';
+      dependencies['jose'] = '^6.2.12';
     }
 
     devDependencies = {

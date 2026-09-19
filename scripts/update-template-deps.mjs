@@ -38,6 +38,12 @@ const TEMPLATE_PACKAGES = [
   '@types/express',
 ];
 
+// A major bump needs a human to build a real generated project before it ships.
+function isMajorBump(oldVersion, newVersion) {
+  if (oldVersion === '?') return false;
+  return oldVersion.split('.')[0] !== newVersion.split('.')[0];
+}
+
 function getLatestVersion(pkg) {
   try {
     return execSync(`npm view ${pkg} version`, { encoding: 'utf8' }).trim();
@@ -79,6 +85,7 @@ async function main() {
 
   let content = readFileSync(TEMPLATE_FILE, 'utf8');
   let hasChanges = false;
+  const majorBumps = [];
 
   for (const pkg of TEMPLATE_PACKAGES) {
     const newVersion = getLatestVersion(pkg);
@@ -97,13 +104,25 @@ async function main() {
     if (updated === content) {
       console.log(`  ${pkg}: ^${oldVersion} (up to date)`);
     } else {
-      console.log(`  ${pkg}: ^${oldVersion} → ^${newVersion}`);
+      const major = isMajorBump(oldVersion, newVersion);
+      console.log(`  ${pkg}: ^${oldVersion} → ^${newVersion}${major ? '   [MAJOR]' : ''}`);
+      if (major) majorBumps.push(`${pkg}: ^${oldVersion} → ^${newVersion}`);
       content = updated;
       hasChanges = true;
     }
   }
 
   console.log();
+
+  if (majorBumps.length > 0) {
+    console.log(`Major version bumps (${majorBumps.length}):`);
+    for (const bump of majorBumps) {
+      console.log(`  ${bump}`);
+    }
+    console.log(
+      '\n  Generate a project for each variant and run install + build before merging.\n'
+    );
+  }
 
   if (!hasChanges) {
     console.log('All packages are already at their latest versions. Nothing to update.');
