@@ -20,6 +20,8 @@ create-mcp-server/
 │       │   ├── tsconfig.json.ts    # tsconfig.json template
 │       │   ├── gitignore.ts        # .gitignore template
 │       │   ├── env.example.ts      # .env.example template
+│       │   ├── agents.md.ts        # AGENTS.md template (per-variant guidance)
+│       │   ├── agents.md.test.ts   # Tests for the AGENTS.md template
 │       │   └── templates.test.ts   # Tests for common templates
 │       ├── deployment/             # Deployment configuration templates
 │       │   ├── dockerfile.ts       # Dockerfile template
@@ -55,6 +57,7 @@ create-mcp-server/
 │           ├── index.ts            # Barrel export + getIndexTemplate
 │           ├── readme.ts           # README.md template
 │           └── templates.test.ts
+├── vitest.config.ts                # Scopes the test run; excludes generated/
 ├── dist/                           # Compiled output (generated)
 ├── docs/
 │   └── oauth-setup.md              # OAuth setup guide for various providers
@@ -131,6 +134,34 @@ Notes for editing these:
 - **`tsconfig.json` excludes `src/**/*.test.ts`.** Without it the tests compile into `dist/` and ship in the Docker production image. `getTsconfigTemplate({ withTests })` controls this; it is on for SDK projects only.
 - **The emitted test code avoids template literals entirely**, using string concatenation instead. Nesting a template literal inside the template literal that generates it needs `\\\`` and `\\\${`, and getting that wrong emits a stray backslash that fails to parse. A test asserts no escaped template-literal syntax reaches the output.
 - **`@modelcontextprotocol/client` must track `@modelcontextprotocol/server`'s major.** Both are in `TEMPLATE_PACKAGES`, but the update script cannot enforce the pairing — check it whenever a major is flagged.
+
+## Generated AGENTS.md
+
+`src/templates/common/agents.md.ts` writes an `AGENTS.md` into every generated
+project. It is **not** a second README: the README says how to run the project,
+this says what someone changing it will otherwise get wrong.
+
+**It must stay example-agnostic.** The shipped notes example is meant to be
+deleted once real tools exist, but `AGENTS.md` stays — so anything naming
+`notes-store`, `list_notes` and friends rots the moment the example goes. The
+guidance uses a neutral illustration (`list_invoices`) instead, and a test
+asserts no example-specific name reaches the output.
+
+It branches per variant, and the branching is the point:
+
+- **HTTP** gets the per-request factory warning (state belongs at module scope).
+- **stdio** gets the stdout rule instead, since the factory warning does not apply.
+- **OAuth** adds the `OAuthError`-not-`Error` rule.
+- **FastMCP** gets a trimmed version that says plainly it ships without tests,
+  rather than leaving a silent gap.
+
+SDK variants also carry the tool-design guidance and a section on organizing
+tools as they grow — flat files, then `src/tools/` per tool, then feature
+folders. The scaffold ships the flat layout because it suits a handful of tools;
+the advice on outgrowing it belongs here rather than in a directory structure
+the example has not earned.
+
+Keep this file honest: if the templates change what they emit, this changes too.
 
 ## Publishing
 
@@ -280,6 +311,7 @@ Generated project structure for HTTP templates (+auth.ts when OAuth enabled for 
 ├── tsconfig.json
 ├── .gitignore
 ├── .env.example
+├── AGENTS.md
 └── README.md
 ```
 
@@ -299,6 +331,7 @@ Generated project structure for stdio templates (no Dockerfile):
 ├── tsconfig.json
 ├── .gitignore
 ├── .env.example
+├── AGENTS.md
 └── README.md
 ```
 
