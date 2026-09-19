@@ -44,12 +44,15 @@ main().catch((error) => {
     console.log(\`OAuth metadata available at \${getOAuthMetadataUrl()}\`);`
     : '';
 
-  return `import 'dotenv/config';
+  return `import { config } from 'dotenv';
 import { type Request, type Response } from 'express';
 import { createMcpHandler } from '@modelcontextprotocol/server';
 import { createMcpExpressApp } from '@modelcontextprotocol/express';
 import { toNodeHandler } from '@modelcontextprotocol/node';
 import { getServer } from './server.js';${authImports}
+
+// quiet: dotenv >=18 logs a summary line on load; keep startup output clean.
+config({ quiet: true });
 
 const allowedHosts = process.env.ALLOWED_HOSTS?.split(',') ?? [];
 

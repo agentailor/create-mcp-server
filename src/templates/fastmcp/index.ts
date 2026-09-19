@@ -17,9 +17,11 @@ server.start({
 
   const statelessConfig = stateless ? '\n    stateless: true,' : '';
 
-  return `
-  import 'dotenv/config';
-  import { server } from './server.js';
+  return `import { config } from 'dotenv';
+import { server } from './server.js';
+
+// quiet: dotenv >=18 logs a summary line on load; keep startup output clean.
+config({ quiet: true });
 
 const PORT = Number(process.env.PORT) || 3000;
 

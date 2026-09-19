@@ -9,9 +9,15 @@ describe('auth template', () => {
       expect(template).toContain('OAUTH_AUDIENCE');
     });
 
-    it('should include dotenv import', () => {
+    it('should load dotenv quietly before reading CONFIG', () => {
       const template = getAuthTemplate();
-      expect(template).toContain("import 'dotenv/config'");
+      expect(template).toContain("import { config } from 'dotenv'");
+      expect(template).toContain('config({ quiet: true })');
+      // Imports are hoisted, so auth.ts must load the env itself rather than
+      // relying on index.ts having done it.
+      expect(template.indexOf('config({ quiet: true })')).toBeLessThan(
+        template.indexOf('const CONFIG')
+      );
     });
 
     it('should import jose for JWT verification', () => {
