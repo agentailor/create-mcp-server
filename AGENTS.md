@@ -2,6 +2,8 @@
 
 A CLI tool to scaffold new MCP (Model Context Protocol) server projects.
 
+Working notes for anyone — human or coding agent — changing this repo. The [README](README.md) covers using the CLI; this file covers the invariants that are not obvious from the code.
+
 ## Project Structure
 
 ```
@@ -89,10 +91,23 @@ npm run format:check
 
 Versions emitted into generated projects are hardcoded in `src/templates/common/package.json.ts` and refreshed by `npm run update-template-deps` (`scripts/update-template-deps.mjs`), which resolves `latest` for every entry in `TEMPLATE_PACKAGES`.
 
-Two things to know before editing that list:
+Things to know before editing that list:
 
 - **`@modelcontextprotocol/sdk` is deliberately absent.** No template declares it any more — SDK templates use the split v2 packages, and FastMCP depends on it transitively rather than directly. Do not add it back, and never point it at `2.x`: the v2 packages are a different package line, and the v1 monolith's own `latest` is still `1.x`.
 - **`hono` is required for SDK HTTP projects.** It is a peer dependency of `@modelcontextprotocol/node`, so the generated project must declare it explicitly even though no template code imports it.
+- **Major bumps are flagged, not blocked.** The script tags any bump that crosses a major with `[MAJOR]` and repeats it in an end-of-run summary. Treat that as a required step, not a warning: generate each variant and run install + build before merging.
+- **The script only matches versions written as `^X.Y.Z`.** An exactly-pinned version is invisible to it and will rot silently, so write new entries with the caret.
+
+Generated projects are on **TypeScript 7** (the Go-native compiler); this repo stays on TypeScript 6 for now.
+
+### dotenv
+
+Generated projects use dotenv 18, which logs a summary line on load (`quiet` defaults to `false`). It writes to stderr, so it cannot corrupt the MCP protocol stream, but templates still call `config({ quiet: true })` explicitly rather than importing `dotenv/config`.
+
+Two rules follow from that:
+
+- **`auth.ts` loads the env itself.** ES imports are hoisted, so `auth.ts` is evaluated before `index.ts` runs `config()`. Without its own load, its module-scope `CONFIG` reads empty values and OAuth breaks silently. Keep the `config()` call above `CONFIG`.
+- **The stdio template must never load dotenv.** stdout is the protocol channel there. A test asserts the emitted index contains no `dotenv`.
 
 ## Publishing
 

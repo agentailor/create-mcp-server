@@ -31,7 +31,7 @@ import { getDockerfileTemplate, getDockerignoreTemplate } from './templates/depl
 import type { TemplateType } from './cli.js';
 
 // Auth is keyed off `withOAuth`, never off the template type - see
-// "Why stateless and stateful are identical" in CLAUDE.md.
+// "Why stateless and stateful are identical" in AGENTS.md.
 const sdkHttpTemplateFunctions = {
   getServerTemplate: getSdkStatelessServerTemplate,
   getIndexTemplate: getSdkStatelessIndexTemplate,
