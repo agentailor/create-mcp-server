@@ -33,7 +33,7 @@ create-mcp-server/
 │       │   ├── index.ts            # Barrel exports
 │       │   └── templates.test.ts   # Tests for deployment templates
 │       └── sdk/                    # Official MCP SDK v2 templates
-│           ├── stateless/          # Shared SDK templates (source of truth)
+│           ├── http/               # HTTP transport template + shared primitives
 │           │   ├── server.ts       # Composition root (registers the primitives)
 │           │   ├── tools.ts        # Tool definitions template
 │           │   ├── prompts.ts      # Prompt definitions template
@@ -43,16 +43,11 @@ create-mcp-server/
 │           │   ├── server-test.ts  # server.test.ts template
 │           │   ├── index.ts        # getIndexTemplate (createMcpHandler + toNodeHandler)
 │           │   ├── readme.ts       # README.md template (OAuth-aware)
-│           │   └── templates.test.ts
-│           ├── stateful/           # Compatibility shim - re-exports stateless
-│           │   ├── server.ts       # Re-exports from stateless
-│           │   ├── index.ts        # Re-exports getIndexTemplate from stateless
-│           │   ├── readme.ts       # Re-exports from stateless
-│           │   ├── auth.ts         # OAuth authentication template (owned here)
+│           │   ├── auth.ts         # OAuth authentication template
 │           │   ├── auth.test.ts    # Tests for auth template
 │           │   └── templates.test.ts
 │           └── stdio/              # stdio transport template
-│               ├── server.ts       # Re-exports from stateless
+│               ├── server.ts       # Re-exports from http
 │               ├── index.ts        # Barrel export + getIndexTemplate (serveStdio)
 │               ├── readme.ts       # README.md template (for local clients)
 │               └── templates.test.ts
@@ -106,6 +101,8 @@ Things to know before editing that list:
 - **Major bumps are flagged, not blocked.** The script tags any bump that crosses a major with `[MAJOR]` and repeats it in an end-of-run summary. Treat that as a required step, not a warning: generate each variant and run install + build before merging.
 - **The script only matches versions written as `^X.Y.Z`.** An exactly-pinned version is invisible to it and will rot silently, so write new entries with the caret.
 
+Generated projects declare `engines: { node: '>=22.19.0' }`. That floor comes from `@modelcontextprotocol/inspector` (vitest 5 alone needs `^22.12.0`); the SDK v2 packages only need `>=20`. Node 20 is end-of-life, so it is kept rather than dropping the inspector. Re-check it when either package bumps its own engine field — a test pins the value.
+
 Generated projects are on **TypeScript 7** (the Go-native compiler); this repo stays on TypeScript 6 for now.
 
 ### dotenv
@@ -120,7 +117,7 @@ Two rules follow from that:
 ## Generated project tests
 
 Every generated project ships a working test setup. Two layers, from
-`src/templates/sdk/stateless/store-test.ts` and `server-test.ts`:
+`src/templates/sdk/http/store-test.ts` and `server-test.ts`:
 
 - **`notes-store.test.ts`** exercises the store with no MCP involved — fast, no transport.
 - **`server.test.ts`** drives a real `Client` over `InMemoryTransport.createLinkedPair()` and asserts on the **parsed tool payload**, which is the surface an agent actually reads. A tool can be internally correct and still return something misleading.
@@ -272,7 +269,7 @@ npx @agentailor/create-mcp-server --name=my-server [options]
 | `--package-manager` | `-p` | `npm` | npm, pnpm, yarn |
 | `--framework` | `-f` | `sdk` | sdk only — accepted for compatibility; `fastmcp` exits with a removal message |
 | `--stdio` | — | `false` | flag; uses stdio transport instead of HTTP |
-| `--template` | `-t` | `stateless` | stateless, stateful — accepted for compatibility; both produce the same SDK v2 project |
+| `--template` | `-t` | — | **deprecated**; stateless, stateful accepted, prints a warning, no effect on output |
 | `--oauth` | — | `false` | flag (HTTP only, incompatible with --stdio) |
 | `--no-git` | — | `false` | flag |
 | `--no-skills` | — | `false` | flag; skips writing the tool-design skill |
@@ -310,11 +307,11 @@ Do not re-add a second framework without a plan for keeping it at parity — tes
 
 ### SDK Templates
 
-#### sdk/stateless — the shared HTTP template
+#### sdk/http
 
 A streamable HTTP MCP server using SDK v2. `createMcpHandler` runs the server factory once per request, so a fresh `McpServer` serves every call.
 
-This directory holds the **shared** HTTP implementation: `server.ts`, `index.ts`, and `readme.ts` here are re-exported by `sdk/stateful`.
+This directory is also where the transport-independent primitives live (`server.ts`, `tools.ts`, `prompts.ts`, `resources.ts`, the store and the emitted tests); `sdk/stdio` re-exports them rather than keeping a copy.
 
 Features:
 - Express.js via `createMcpExpressApp` + `toNodeHandler`
@@ -323,27 +320,21 @@ Features:
 - The notes example: `list_notes` / `get_note` / `create_note`, a `notes://{id}` resource template, and a `summarize-notes` prompt
 - Health check at `GET /health`
 - Environment variable support for PORT and ALLOWED_HOSTS
-- **Optional OAuth authentication** (`withOAuth`)
+- **Optional OAuth authentication** (`withOAuth`, `auth.ts`)
 
-#### sdk/stateful
+##### Why there is no stateful template any more
 
-Retained only for CLI compatibility. SDK v2 collapsed the stateless/stateful distinction, so this directory re-exports the stateless template's `server.ts`, `index.ts`, and `readme.ts` verbatim. It still owns `auth.ts` (the OAuth template).
-
-If a session-based variant is ever needed again, it would be built on `NodeStreamableHTTPServerTransport` from `@modelcontextprotocol/node`.
-
-##### Why stateless and stateful are identical
-
-`createMcpHandler` runs the server factory **once per request**, so a fresh `McpServer` serves every call, and its default `legacy: 'stateless'` serves 2025-era clients through that same per-request path. There is no session state left for a "stateful" variant to hold, so both template types generate the same project.
+SDK v1 needed separate stateless and stateful HTTP templates. v2 does not: `createMcpHandler` runs the server factory **once per request**, and its default `legacy: 'stateless'` serves 2025-era clients through that same path, so there is no session state left for a "stateful" variant to hold. The two directories generated identical projects, and were collapsed into `sdk/http/` (issue #26).
 
 Consequences to keep in mind when editing:
 
-- `sdk/stateless/` is the source of truth for the HTTP templates. `sdk/stateful/` is a re-export shim — change behaviour in `stateless/`.
-- `--template` no longer affects SDK output. It is still parsed so existing invocations keep working, and the interactive flow no longer prompts for it.
-- OAuth is **orthogonal** to the template type. It applies to any SDK HTTP project and is keyed off `withOAuth`, never off `templateType`. `project-generator.ts` previously resolved `getAuthTemplate` through the template-type map; once both types converged that silently produced no `auth.ts`.
+- `--template` is **deprecated**. It is still parsed (hidden from `--help`) so existing scripts keep working; passing it prints `TEMPLATE_DEPRECATED_MESSAGE` from `src/cli.ts` and has no effect on output. Remove it outright in a future breaking release — it is not wired to anything.
+- OAuth is keyed off `withOAuth`, never off a template type. `project-generator.ts` once resolved `getAuthTemplate` through a template-type map; when both types converged that silently produced no `auth.ts`.
+- If a session-based variant is ever needed again, build it on `NodeStreamableHTTPServerTransport` from `@modelcontextprotocol/node`.
 
 ##### OAuth Option
 
-OAuth is orthogonal to the template type and applies to any SDK HTTP project. When enabled:
+OAuth applies to any SDK HTTP project. When enabled:
 - Generates `src/auth.ts` with JWKS/JWT-based OAuth middleware
 - Uses any OIDC-compliant provider (Auth0, Keycloak, Azure AD, Okta, etc.)
 - Environment variables: `OAUTH_ISSUER_URL`, `OAUTH_AUDIENCE` (optional)

@@ -2,7 +2,7 @@ export type { SdkTemplateOptions as TemplateOptions } from '../../common/types.j
 import type { SdkTemplateOptions } from '../../common/types.js';
 
 /**
- * Shared HTTP entrypoint template, used by both SDK HTTP template types.
+ * HTTP entrypoint template.
  * Varies only by `options.withOAuth`.
  */
 export function getIndexTemplate(options?: SdkTemplateOptions): string {
@@ -108,3 +108,4 @@ export { getPromptsTemplate } from './prompts.js';
 export { getResourcesTemplate } from './resources.js';
 export { getStoreTestTemplate } from './store-test.js';
 export { getServerTestTemplate } from './server-test.js';
+export { getAuthTemplate } from './auth.js';

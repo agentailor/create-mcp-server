@@ -6,3 +6,7 @@ generated/
 # Vendored verbatim from agentailor/skills - must stay byte-identical to
 # upstream, so it is never reformatted. See "The tool-design skill" in AGENTS.md.
 src/assets/
+
+# Hand-formatted docs: compact tables and *emphasis* are intentional.
+README.md
+AGENTS.md

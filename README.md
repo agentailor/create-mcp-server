@@ -31,7 +31,7 @@ npx @agentailor/create-mcp-server --name=my-server
 | `--package-manager` | `-p` | `npm` | Package manager: npm, pnpm, yarn |
 | `--framework` | `-f` | `sdk` | Accepted for compatibility; `sdk` is the only framework |
 | `--stdio` | — | `false` | Use stdio transport (for local clients) |
-| `--template` | `-t` | `stateless` | Accepted for compatibility; SDK v2 serves both modes through one per-request idiom |
+| `--template` | `-t` | — | **Deprecated**, no effect; prints a warning and will be removed in a future release |
 | `--oauth` | — | `false` | Enable OAuth (HTTP only, incompatible with --stdio) |
 | `--no-git` | — | `false` | Skip git initialization |
 | `--no-skills` | — | `false` | Skip adding the tool-design skill |
@@ -94,7 +94,7 @@ HTTP servers are built on `createMcpHandler`, which runs the server factory once
 
 SDK v2 serves every HTTP request through a single per-request idiom: `createMcpHandler` builds a fresh `McpServer` for each call, and 2025-era clients are served through the same path. The `stateless`/`stateful` distinction that v1 required no longer changes the generated project.
 
-`--template` is still accepted so existing invocations keep working, but both values produce the same output. If you need session-based serving with SSE resumability, the SDK still offers `NodeStreamableHTTPServerTransport` — see the [SDK v2 sessions guide](https://ts.sdk.modelcontextprotocol.io/v2/serving/sessions-state-scaling.html).
+`--template` is deprecated: both values produce the same output and the CLI prints a warning when it is passed. It will be removed in a future release, so drop it from scripts. If you need session-based serving with SSE resumability, the SDK still offers `NodeStreamableHTTPServerTransport` — see the [SDK v2 sessions guide](https://ts.sdk.modelcontextprotocol.io/v2/serving/sessions-state-scaling.html).
 
 ## Generated Project
 

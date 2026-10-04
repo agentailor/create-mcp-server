@@ -39,7 +39,6 @@ describe('CLI argument parsing', () => {
     const result = parseArguments();
     expect(result.options?.packageManager).toBe('npm');
     expect(result.options?.transport).toBe('http');
-    expect(result.options?.template).toBe('stateless');
     expect(result.options?.oauth).toBe(false);
     expect(result.options?.git).toBe(true);
   });
@@ -51,7 +50,6 @@ describe('CLI argument parsing', () => {
       '--name=test-project',
       '--package-manager=pnpm',
       '--framework=sdk',
-      '--template=stateful',
       '--no-git',
     ];
     const { parseArguments } = await import('./cli.js');
@@ -60,7 +58,6 @@ describe('CLI argument parsing', () => {
       name: 'test-project',
       packageManager: 'pnpm',
       transport: 'http',
-      template: 'stateful',
       oauth: false,
       git: false,
       skills: true,
@@ -68,48 +65,60 @@ describe('CLI argument parsing', () => {
   });
 
   it('parses short flags correctly', async () => {
-    process.argv = [
-      'node',
-      'create-mcp-server',
-      '-n',
-      'my-project',
-      '-p',
-      'yarn',
-      '-f',
-      'sdk',
-      '-t',
-      'stateful',
-    ];
+    process.argv = ['node', 'create-mcp-server', '-n', 'my-project', '-p', 'yarn', '-f', 'sdk'];
     const { parseArguments } = await import('./cli.js');
     const result = parseArguments();
     expect(result.options?.name).toBe('my-project');
     expect(result.options?.packageManager).toBe('yarn');
-    expect(result.options?.template).toBe('stateful');
   });
 
-  it('parses oauth flag correctly for sdk+stateful', async () => {
-    process.argv = [
-      'node',
-      'create-mcp-server',
-      '--name=my-auth-server',
-      '--framework=sdk',
-      '--template=stateful',
-      '--oauth',
-    ];
-    const { parseArguments } = await import('./cli.js');
-    const result = parseArguments();
-    expect(result.options?.oauth).toBe(true);
-    expect(result.options?.template).toBe('stateful');
-  });
-
-  // SDK v2 collapsed the stateless/stateful distinction, and OAuth is
-  // orthogonal to sessions, so --oauth no longer requires --template=stateful.
-  it('parses oauth flag correctly for sdk without --template=stateful', async () => {
+  it('parses the oauth flag', async () => {
     process.argv = ['node', 'create-mcp-server', '--name=my-auth-server', '--oauth'];
     const { parseArguments } = await import('./cli.js');
     const result = parseArguments();
     expect(result.options?.oauth).toBe(true);
-    expect(result.options?.template).toBe('stateless');
+  });
+
+  // Deprecated, not removed: existing scripts must keep working, with a warning.
+  it.each(['stateless', 'stateful'])(
+    'warns that --template=%s is deprecated and still generates',
+    async (value) => {
+      process.argv = ['node', 'create-mcp-server', '--name=test', '--template=' + value];
+      const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const { parseArguments, TEMPLATE_DEPRECATED_MESSAGE } = await import('./cli.js');
+      const result = parseArguments();
+      expect(result.mode).toBe('cli');
+      expect(result.options?.transport).toBe('http');
+      expect(consoleWarn).toHaveBeenCalledWith(
+        expect.stringContaining(TEMPLATE_DEPRECATED_MESSAGE)
+      );
+
+      consoleWarn.mockRestore();
+    }
+  );
+
+  // stdio has no sessions either, so the old stdio+stateful error is now just the warning.
+  it('accepts --template=stateful with --stdio, with a warning', async () => {
+    process.argv = ['node', 'create-mcp-server', '--name=test', '--stdio', '-t', 'stateful'];
+    const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const { parseArguments } = await import('./cli.js');
+    expect(parseArguments().options?.transport).toBe('stdio');
+    expect(consoleWarn).toHaveBeenCalledWith(expect.stringContaining('--template is deprecated'));
+
+    consoleWarn.mockRestore();
+  });
+
+  it('does not warn when --template is omitted', async () => {
+    process.argv = ['node', 'create-mcp-server', '--name=test'];
+    const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const { parseArguments } = await import('./cli.js');
+    parseArguments();
+    expect(consoleWarn).not.toHaveBeenCalled();
+
+    consoleWarn.mockRestore();
   });
 
   it('exits with error when --name is missing in CLI mode', async () => {
@@ -243,7 +252,6 @@ describe('CLI argument parsing', () => {
       '--stdio',
       '--oauth',
       '--framework=sdk',
-      '--template=stateful',
     ];
 
     let exitCode: number | undefined;
@@ -259,27 +267,6 @@ describe('CLI argument parsing', () => {
     expect(exitCode).toBe(1);
     expect(consoleError).toHaveBeenCalledWith(
       expect.stringContaining('--stdio cannot be combined with --oauth')
-    );
-
-    consoleError.mockRestore();
-  });
-
-  it('exits with error when --stdio combined with --template=stateful', async () => {
-    process.argv = ['node', 'create-mcp-server', '--name=test', '--stdio', '--template=stateful'];
-
-    let exitCode: number | undefined;
-    process.exit = vi.fn((code) => {
-      exitCode = code as number;
-      throw new Error('process.exit called');
-    }) as never;
-
-    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
-
-    const { parseArguments } = await import('./cli.js');
-    expect(() => parseArguments()).toThrow('process.exit called');
-    expect(exitCode).toBe(1);
-    expect(consoleError).toHaveBeenCalledWith(
-      expect.stringContaining('--template=stateful is not applicable with --stdio')
     );
 
     consoleError.mockRestore();
