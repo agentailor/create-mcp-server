@@ -19,7 +19,7 @@ export interface ParseResult {
 }
 
 const NAME_REGEX = /^[a-z0-9-_]+$/i;
-const VERSION = '0.9.0';
+const VERSION = '0.10.0';
 
 export const FASTMCP_REMOVED_MESSAGE = [
   'FastMCP support was removed in 0.10.0. New projects use the Official MCP SDK;',
