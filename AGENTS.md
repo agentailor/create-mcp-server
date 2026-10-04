@@ -231,16 +231,26 @@ Releases are published by CI, not from a laptop. The flow:
 2. After it merges, create a GitHub release tagged `vX.Y.Z` on `main`
    (`gh release create vX.Y.Z --target main --notes-file ...`).
 3. `.github/workflows/publish.yml` runs on the published release, checks the tag
-   matches `package.json`, builds, and runs `npm publish`.
+   matches `package.json`, builds, and runs `npm stage publish`.
+4. **Approve the staged version.** Nothing is live until a maintainer approves it
+   on npmjs.com (package → Staged Packages → Approve) or with
+   `npm stage approve <stage-id>` (`npm stage list` shows the id). Approval needs
+   2FA. A release isn't done until this step is.
 
 **Authentication is npm trusted publishing (OIDC), not a token.** The package's
 npm settings name this repo and `publish.yml` as its trusted publisher, and the
 workflow's `id-token: write` permission lets npm verify the run. There is no
 `NPM_TOKEN` to rotate — that secret expired once and silently broke a release.
-Two things keep it working:
+Things that keep it working:
 
-- **npm must be ≥ 11.5.1.** Node 22 ships npm 10, so the workflow upgrades npm
-  before publishing. Don't remove that step.
+- **The trusted publisher is stage-only, deliberately.** "Allow npm publish" is
+  left unchecked on npmjs.com, so CI can stage a version but never ship one on
+  its own. This CLI runs on users' machines via `npx`, so a compromised release
+  would execute immediately; the human approval is the guard. Switching the
+  workflow back to plain `npm publish` fails with `403 OIDC permission denied
+  for this action` — that is this setting working, not a bug.
+- **npm must be ≥ 11.15.0** (staged publishing). Node 22 ships npm 10, so the
+  workflow upgrades npm before publishing. Don't remove that step.
 - **Renaming `publish.yml` breaks publishing** until the trusted publisher on
   npmjs.com is updated to the new filename.
 
