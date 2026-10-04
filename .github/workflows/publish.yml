@@ -3,19 +3,35 @@ name: Publish
 on:
   release:
     types: [published]
+  # Re-publish an existing release, e.g. when the release-triggered run failed.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to publish (e.g. v0.9.0)'
+        required: true
+
+# Trusted publishing: npm authenticates this workflow through GitHub's OIDC
+# token, so there is no NPM_TOKEN to expire.
+permissions:
+  contents: read
+  id-token: write
 
 jobs:
   publish:
     runs-on: ubuntu-latest
 
+    env:
+      RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RELEASE_TAG }}
 
       - name: Validate version match
         run: |
           PACKAGE_VERSION=$(node -p "require('./package.json').version")
-          RELEASE_TAG="${{ github.event.release.tag_name }}"
           # Remove 'v' prefix if present
           RELEASE_VERSION="${RELEASE_TAG#v}"
           if [ "$PACKAGE_VERSION" != "$RELEASE_VERSION" ]; then
@@ -33,6 +49,10 @@ jobs:
           cache: 'npm'
           registry-url: 'https://registry.npmjs.org'
 
+      # Trusted publishing needs npm >= 11.5.1; Node 22 ships npm 10.
+      - name: Upgrade npm
+        run: npm install -g npm@latest
+
       - name: Install dependencies
         run: npm ci
 
@@ -41,5 +61,3 @@ jobs:
 
       - name: Publish to npm
         run: npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
