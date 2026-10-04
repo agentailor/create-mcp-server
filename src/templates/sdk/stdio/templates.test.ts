@@ -16,8 +16,8 @@ describe('sdk/stdio templates', () => {
       expect(template).not.toContain('@modelcontextprotocol/sdk');
     });
 
-    // The server is re-exported from stateless/, so this only checks that the
-    // same composition arrives here - its detail is tested in stateless/.
+    // The server is re-exported from http/, so this only checks that the
+    // same composition arrives here - its detail is tested in http/.
     it('should compose the shared primitives', () => {
       const template = getServerTemplate(projectName);
       expect(template).toContain('registerTools(server)');

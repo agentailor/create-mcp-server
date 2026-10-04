@@ -13,32 +13,23 @@ import type {
   TransportType,
 } from './templates/common/types.js';
 import {
-  getServerTemplate as getSdkStatelessServerTemplate,
-  getIndexTemplate as getSdkStatelessIndexTemplate,
-  getReadmeTemplate as getSdkStatelessReadmeTemplate,
+  getServerTemplate as getSdkHttpServerTemplate,
+  getIndexTemplate as getSdkHttpIndexTemplate,
+  getReadmeTemplate as getSdkHttpReadmeTemplate,
+  getAuthTemplate as getSdkAuthTemplate,
   getStoreTemplate as getSdkStoreTemplate,
   getToolsTemplate as getSdkToolsTemplate,
   getPromptsTemplate as getSdkPromptsTemplate,
   getResourcesTemplate as getSdkResourcesTemplate,
   getStoreTestTemplate as getSdkStoreTestTemplate,
   getServerTestTemplate as getSdkServerTestTemplate,
-} from './templates/sdk/stateless/index.js';
-import { getAuthTemplate as getSdkAuthTemplate } from './templates/sdk/stateful/index.js';
+} from './templates/sdk/http/index.js';
 import {
   getServerTemplate as getSdkStdioServerTemplate,
   getIndexTemplate as getSdkStdioIndexTemplate,
   getReadmeTemplate as getSdkStdioReadmeTemplate,
 } from './templates/sdk/stdio/index.js';
 import { getDockerfileTemplate, getDockerignoreTemplate } from './templates/deployment/index.js';
-
-// Auth is keyed off `withOAuth`, never off the template type - see
-// "Why stateless and stateful are identical" in AGENTS.md.
-const sdkHttpTemplateFunctions = {
-  getServerTemplate: getSdkStatelessServerTemplate,
-  getIndexTemplate: getSdkStatelessIndexTemplate,
-  getReadmeTemplate: getSdkStatelessReadmeTemplate,
-  getAuthTemplate: getSdkAuthTemplate,
-};
 
 export const packageManagerCommands: Record<PackageManager, { install: string; dev: string }> = {
   npm: { install: 'npm install', dev: 'npm run dev' },
@@ -84,18 +75,17 @@ export async function generateProject(config: ProjectConfig): Promise<void> {
       )
     );
   } else {
-    const templates = sdkHttpTemplateFunctions;
     filesToWrite.push(
-      writeFile(join(srcPath, 'server.ts'), templates.getServerTemplate(projectName)),
-      writeFile(join(srcPath, 'index.ts'), templates.getIndexTemplate(templateOptions)),
+      writeFile(join(srcPath, 'server.ts'), getSdkHttpServerTemplate(projectName)),
+      writeFile(join(srcPath, 'index.ts'), getSdkHttpIndexTemplate(templateOptions)),
       writeFile(
         join(projectPath, 'README.md'),
-        templates.getReadmeTemplate(projectName, templateOptions)
+        getSdkHttpReadmeTemplate(projectName, templateOptions)
       )
     );
 
     if (withOAuth) {
-      filesToWrite.push(writeFile(join(srcPath, 'auth.ts'), templates.getAuthTemplate()));
+      filesToWrite.push(writeFile(join(srcPath, 'auth.ts'), getSdkAuthTemplate()));
     }
   }
 

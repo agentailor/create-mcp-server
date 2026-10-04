@@ -1,13 +1,10 @@
 import { Command, Option, InvalidArgumentError } from 'commander';
 import type { PackageManager, TransportType } from './templates/common/types.js';
 
-export type TemplateType = 'stateless' | 'stateful';
-
 export interface CLIOptions {
   name: string;
   packageManager: PackageManager;
   transport: TransportType;
-  template: TemplateType;
   oauth: boolean;
   git: boolean;
   skills: boolean;
@@ -27,6 +24,10 @@ export const FASTMCP_REMOVED_MESSAGE = [
   'To scaffold a FastMCP project, pin the last release that supports it:',
   '  npx @agentailor/create-mcp-server@0.9 --framework=fastmcp',
 ].join('\n');
+
+export const TEMPLATE_DEPRECATED_MESSAGE =
+  '--template is deprecated and has no effect: stateless and stateful generate the same project. ' +
+  'It will be removed in a future release; drop it from your command.';
 
 function validateName(value: string): string {
   if (!NAME_REGEX.test(value)) {
@@ -59,13 +60,13 @@ export function parseArguments(): ParseResult {
         'Framework (sdk only; accepted for compatibility)'
       ).default('sdk')
     )
+    // Deprecated: SDK v2 serves every HTTP request the same way, so both values
+    // generate the same project. Still parsed so existing scripts get a warning
+    // rather than Commander's unknown-option error.
     .addOption(
-      new Option(
-        '-t, --template <type>',
-        'Template type (no effect on SDK projects; both generate the same server)'
-      )
+      new Option('-t, --template <type>', 'Deprecated; has no effect')
         .choices(['stateless', 'stateful'])
-        .default('stateless')
+        .hideHelp()
     )
     .option('--stdio', 'Use stdio transport instead of HTTP', false)
     .option('--oauth', 'Enable OAuth authentication (sdk HTTP only)', false)
@@ -112,11 +113,8 @@ export function parseArguments(): ParseResult {
     process.exit(1);
   }
 
-  if (opts.stdio && opts.template === 'stateful') {
-    console.error(
-      '\nError: --template=stateful is not applicable with --stdio (stdio is inherently stateless)\n'
-    );
-    process.exit(1);
+  if (opts.template !== undefined) {
+    console.warn(`\nWarning: ${TEMPLATE_DEPRECATED_MESSAGE}\n`);
   }
 
   return {
@@ -125,7 +123,6 @@ export function parseArguments(): ParseResult {
       name: opts.name,
       packageManager: opts.packageManager as PackageManager,
       transport: (opts.stdio ? 'stdio' : 'http') as TransportType,
-      template: opts.template as TemplateType,
       oauth: opts.oauth,
       git: opts.git, // Commander handles --no-git -> git: false
       skills: opts.skills, // Commander handles --no-skills -> skills: false

@@ -16,9 +16,9 @@ console.error('MCP Server running on stdio');
 
 export { getServerTemplate } from './server.js';
 export { getReadmeTemplate } from './readme.js';
-export { getStoreTemplate } from '../stateless/store.js';
-export { getToolsTemplate } from '../stateless/tools.js';
-export { getPromptsTemplate } from '../stateless/prompts.js';
-export { getResourcesTemplate } from '../stateless/resources.js';
-export { getStoreTestTemplate } from '../stateless/store-test.js';
-export { getServerTestTemplate } from '../stateless/server-test.js';
+export { getStoreTemplate } from '../http/store.js';
+export { getToolsTemplate } from '../http/tools.js';
+export { getPromptsTemplate } from '../http/prompts.js';
+export { getResourcesTemplate } from '../http/resources.js';
+export { getStoreTestTemplate } from '../http/store-test.js';
+export { getServerTestTemplate } from '../http/server-test.js';

@@ -9,7 +9,7 @@ export interface BaseTemplateOptions {
 }
 
 /**
- * Template options for SDK templates (stateless and stateful)
+ * Template options for SDK templates (http and stdio)
  */
 export interface SdkTemplateOptions extends BaseTemplateOptions {
   withOAuth?: boolean;

@@ -12,22 +12,22 @@ export function getPackageJsonTemplate(
 
   const commonDevDependencies = {
     typescript: '^7.0.2',
-    '@modelcontextprotocol/inspector': '^2.7.0',
-    '@types/node': '^26.6.2',
+    '@modelcontextprotocol/inspector': '^2.9.0',
+    '@types/node': '^26.6.4',
   };
   const zodDependency = { zod: '^4.6.5' };
-  const dotEnvDependency = { dotenv: '^18.0.1' };
+  const dotEnvDependency = { dotenv: '^18.0.5' };
   // The client drives the server over an in-memory transport in the generated
   // tests, so it must track @modelcontextprotocol/server's major.
   const testDevDependencies = {
-    vitest: '^5.0.1',
-    '@modelcontextprotocol/client': '^2.0.0',
+    vitest: '^5.0.3',
+    '@modelcontextprotocol/client': '^2.3.0',
   };
 
   if (transport === 'stdio') {
     // Official SDK v2 stdio - no express needed
     dependencies = {
-      '@modelcontextprotocol/server': '^2.0.0',
+      '@modelcontextprotocol/server': '^2.3.0',
       ...zodDependency,
       ...dotEnvDependency,
     };
@@ -40,11 +40,11 @@ export function getPackageJsonTemplate(
     // hono is a peer dependency of @modelcontextprotocol/node, so the generated
     // project must declare it even though no template code imports it.
     dependencies = {
-      '@modelcontextprotocol/server': '^2.0.0',
-      '@modelcontextprotocol/express': '^2.0.0',
-      '@modelcontextprotocol/node': '^2.0.0',
+      '@modelcontextprotocol/server': '^2.3.0',
+      '@modelcontextprotocol/express': '^2.0.2',
+      '@modelcontextprotocol/node': '^2.1.1',
       express: '^5.2.1',
-      hono: '^4.13.8',
+      hono: '^4.13.13',
       ...zodDependency,
       ...dotEnvDependency,
     };
@@ -85,8 +85,9 @@ export function getPackageJsonTemplate(
     dependencies,
     devDependencies,
     engines: {
-      // Floor set by @modelcontextprotocol/inspector, which requires >=22.19.0.
-      // The SDK v2 packages themselves only need >=20.
+      // Floor set by @modelcontextprotocol/inspector, which requires >=22.19.0
+      // (vitest 5 alone needs ^22.12.0). The SDK v2 packages only need >=20.
+      // Node 20 is end-of-life, so this floor costs no supported user anything.
       node: '>=22.19.0',
     },
   };
