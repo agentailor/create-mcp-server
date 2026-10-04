@@ -29,7 +29,7 @@ npx @agentailor/create-mcp-server --name=my-server
 |--------|-------|---------|-------------|
 | `--name` | `-n` | — | Project name (required in CLI mode) |
 | `--package-manager` | `-p` | `npm` | Package manager: npm, pnpm, yarn |
-| `--framework` | `-f` | `sdk` | Framework: sdk, fastmcp |
+| `--framework` | `-f` | `sdk` | Framework: sdk, fastmcp (deprecated) |
 | `--stdio` | — | `false` | Use stdio transport (for local clients) |
 | `--template` | `-t` | `stateless` | Accepted for compatibility; SDK v2 serves both modes through one per-request idiom |
 | `--oauth` | — | `false` | Enable OAuth (sdk HTTP only, incompatible with --stdio) |
@@ -47,9 +47,6 @@ npx @agentailor/create-mcp-server --name=my-server
 # stdio server (for local clients)
 npx @agentailor/create-mcp-server --name=my-server --stdio
 
-# stdio with FastMCP
-npx @agentailor/create-mcp-server --name=my-server --stdio --framework=fastmcp
-
 # Full HTTP options
 npx @agentailor/create-mcp-server \
   --name=my-auth-server \
@@ -58,13 +55,13 @@ npx @agentailor/create-mcp-server \
   --oauth
 
 # Short flags
-npx @agentailor/create-mcp-server -n my-server -p yarn -f fastmcp
+npx @agentailor/create-mcp-server -n my-server -p yarn --stdio
 ```
 
 ## Features
 
 - **MCP SDK v2** — SDK projects serve protocol revision `2026-07-28` and still accept 2025-era clients
-- **Two frameworks** — Official MCP SDK or FastMCP
+- **Official MCP SDK** — FastMCP is still available but deprecated
 - **Two transport types** — HTTP (streamable) or stdio (for local clients)
 - **Stateless by design** — the SDK handler builds a fresh server per request, so HTTP servers scale without sticky sessions
 - **Optional OAuth** — OIDC-compliant authentication (SDK HTTP only) ([setup guide](docs/oauth-setup.md))
@@ -78,7 +75,7 @@ npx @agentailor/create-mcp-server -n my-server -p yarn -f fastmcp
 | Framework | Description |
 |-----------|-------------|
 | **Official MCP SDK** (default) | SDK v2, full control with Express.js, supports OAuth |
-| **FastMCP** | Simpler API with less boilerplate (still on SDK v1) |
+| **FastMCP** (deprecated) | Simpler API with less boilerplate (still on SDK v1) |
 
 ### Official MCP SDK
 
@@ -86,7 +83,9 @@ SDK projects are generated against the [MCP TypeScript SDK v2](https://ts.sdk.mo
 
 HTTP servers are built on `createMcpHandler`, which runs the server factory once per request. They serve protocol revision `2026-07-28` and also accept 2025-era clients. stdio servers use `serveStdio`, which negotiates the era per connection.
 
-### FastMCP
+### FastMCP (deprecated)
+
+> **Deprecated:** FastMCP support will be removed in a future release. Generating a FastMCP project prints a warning. New projects should use the Official MCP SDK; if you need to keep scaffolding FastMCP projects after the removal, pin `npx @agentailor/create-mcp-server@0.9`.
 
 [FastMCP](https://github.com/punkpeye/fastmcp) is a TypeScript framework built on top of the official MCP SDK that provides a simpler, more intuitive API for building MCP servers.
 

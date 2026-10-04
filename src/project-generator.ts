@@ -6,6 +6,7 @@ import { getTsconfigTemplate } from './templates/common/tsconfig.json.js';
 import { getGitignoreTemplate } from './templates/common/gitignore.js';
 import { getEnvExampleTemplate } from './templates/common/env.example.js';
 import { getAgentsMdTemplate } from './templates/common/agents.md.js';
+import { warnIfDeprecated } from './deprecations.js';
 import { copySkill, SKILLS_UPDATE_COMMAND, SKILLS_INSTALL_HINT, SKILLS_DIR } from './skills.js';
 import type {
   CommonTemplateOptions,
@@ -81,6 +82,9 @@ export async function generateProject(config: ProjectConfig): Promise<void> {
     withGitInit,
     withSkills,
   } = config;
+
+  // Here rather than in either entry point, so CLI and interactive runs both warn.
+  warnIfDeprecated(framework);
 
   const templateOptions: CommonTemplateOptions = {
     withOAuth: transport === 'http' ? withOAuth : false,
