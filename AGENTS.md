@@ -12,8 +12,6 @@ create-mcp-server/
 │   ├── index.ts                    # CLI entry point
 │   ├── cli.ts                      # CLI argument parsing (Commander.js)
 │   ├── cli.test.ts                 # Tests for CLI argument parsing
-│   ├── deprecations.ts             # Deprecation warnings (FastMCP)
-│   ├── deprecations.test.ts        # Tests for the warnings
 │   ├── skills.ts                   # Copies the vendored tool-design skill
 │   ├── skills.test.ts              # Tests for the skill copy
 │   ├── assets/                     # Non-TS files copied into dist/ at build
@@ -22,7 +20,7 @@ create-mcp-server/
 │   ├── project-generator.ts        # Shared project generation logic
 │   └── templates/
 │       ├── common/                 # Shared template files
-│       │   ├── package.json.ts     # package.json template (framework-aware)
+│       │   ├── package.json.ts     # package.json template (transport-aware)
 │       │   ├── tsconfig.json.ts    # tsconfig.json template
 │       │   ├── gitignore.ts        # .gitignore template
 │       │   ├── env.example.ts      # .env.example template
@@ -34,35 +32,30 @@ create-mcp-server/
 │       │   ├── dockerignore.ts     # .dockerignore template
 │       │   ├── index.ts            # Barrel exports
 │       │   └── templates.test.ts   # Tests for deployment templates
-│       ├── sdk/                    # Official MCP SDK v2 templates
-│       │   ├── stateless/          # Shared SDK templates (source of truth)
-│       │   │   ├── server.ts       # Composition root (registers the primitives)
-│       │   │   ├── tools.ts        # Tool definitions template
-│       │   │   ├── prompts.ts      # Prompt definitions template
-│       │   │   ├── resources.ts    # Resource definitions template
-│       │   │   ├── store.ts        # notes-store.ts template (no MCP imports)
-│       │   │   ├── store-test.ts   # notes-store.test.ts template
-│       │   │   ├── server-test.ts  # server.test.ts template
-│       │   │   ├── index.ts        # getIndexTemplate (createMcpHandler + toNodeHandler)
-│       │   │   ├── readme.ts       # README.md template (OAuth-aware)
-│       │   │   └── templates.test.ts
-│       │   ├── stateful/           # Compatibility shim - re-exports stateless
-│       │   │   ├── server.ts       # Re-exports from stateless
-│       │   │   ├── index.ts        # Re-exports getIndexTemplate from stateless
-│       │   │   ├── readme.ts       # Re-exports from stateless
-│       │   │   ├── auth.ts         # OAuth authentication template (owned here)
-│       │   │   ├── auth.test.ts    # Tests for auth template
-│       │   │   └── templates.test.ts
-│       │   └── stdio/              # stdio transport template
-│       │       ├── server.ts       # Re-exports from stateless
-│       │       ├── index.ts        # Barrel export + getIndexTemplate (serveStdio)
-│       │       ├── readme.ts       # README.md template (for local clients)
-│       │       └── templates.test.ts
-│       └── fastmcp/                # FastMCP templates (deprecated)
-│           ├── server.ts           # FastMCP server definition template
-│           ├── index.ts            # Barrel export + getIndexTemplate
-│           ├── readme.ts           # README.md template
-│           └── templates.test.ts
+│       └── sdk/                    # Official MCP SDK v2 templates
+│           ├── stateless/          # Shared SDK templates (source of truth)
+│           │   ├── server.ts       # Composition root (registers the primitives)
+│           │   ├── tools.ts        # Tool definitions template
+│           │   ├── prompts.ts      # Prompt definitions template
+│           │   ├── resources.ts    # Resource definitions template
+│           │   ├── store.ts        # notes-store.ts template (no MCP imports)
+│           │   ├── store-test.ts   # notes-store.test.ts template
+│           │   ├── server-test.ts  # server.test.ts template
+│           │   ├── index.ts        # getIndexTemplate (createMcpHandler + toNodeHandler)
+│           │   ├── readme.ts       # README.md template (OAuth-aware)
+│           │   └── templates.test.ts
+│           ├── stateful/           # Compatibility shim - re-exports stateless
+│           │   ├── server.ts       # Re-exports from stateless
+│           │   ├── index.ts        # Re-exports getIndexTemplate from stateless
+│           │   ├── readme.ts       # Re-exports from stateless
+│           │   ├── auth.ts         # OAuth authentication template (owned here)
+│           │   ├── auth.test.ts    # Tests for auth template
+│           │   └── templates.test.ts
+│           └── stdio/              # stdio transport template
+│               ├── server.ts       # Re-exports from stateless
+│               ├── index.ts        # Barrel export + getIndexTemplate (serveStdio)
+│               ├── readme.ts       # README.md template (for local clients)
+│               └── templates.test.ts
 ├── vitest.config.ts                # Scopes the test run; excludes generated/
 ├── dist/                           # Compiled output (generated)
 ├── docs/
@@ -87,7 +80,7 @@ node dist/index.js
 
 # Test locally (CLI mode)
 node dist/index.js --name=test-server
-node dist/index.js --name=test-server --package-manager=pnpm --framework=fastmcp
+node dist/index.js --name=test-server --package-manager=pnpm --stdio
 
 # Run tests
 npm test
@@ -108,7 +101,7 @@ Versions emitted into generated projects are hardcoded in `src/templates/common/
 
 Things to know before editing that list:
 
-- **`@modelcontextprotocol/sdk` is deliberately absent.** No template declares it any more — SDK templates use the split v2 packages, and FastMCP depends on it transitively rather than directly. Do not add it back, and never point it at `2.x`: the v2 packages are a different package line, and the v1 monolith's own `latest` is still `1.x`.
+- **`@modelcontextprotocol/sdk` is deliberately absent.** No template declares it any more — templates use the split v2 packages. Do not add it back, and never point it at `2.x`: the v2 packages are a different package line, and the v1 monolith's own `latest` is still `1.x`.
 - **`hono` is required for SDK HTTP projects.** It is a peer dependency of `@modelcontextprotocol/node`, so the generated project must declare it explicitly even though no template code imports it.
 - **Major bumps are flagged, not blocked.** The script tags any bump that crosses a major with `[MAJOR]` and repeats it in an end-of-run summary. Treat that as a required step, not a warning: generate each variant and run install + build before merging.
 - **The script only matches versions written as `^X.Y.Z`.** An exactly-pinned version is invisible to it and will rot silently, so write new entries with the caret.
@@ -126,7 +119,7 @@ Two rules follow from that:
 
 ## Generated project tests
 
-SDK projects ship a working test setup; FastMCP does not yet. Two layers, from
+Every generated project ships a working test setup. Two layers, from
 `src/templates/sdk/stateless/store-test.ts` and `server-test.ts`:
 
 - **`notes-store.test.ts`** exercises the store with no MCP involved — fast, no transport.
@@ -137,7 +130,7 @@ SDK projects ship a working test setup; FastMCP does not yet. Two layers, from
 Notes for editing these:
 
 - **No `vitest.config.ts` is emitted, and none is needed.** Vitest discovers `src/**/*.test.ts` and handles TypeScript out of the box.
-- **`tsconfig.json` excludes `src/**/*.test.ts`.** Without it the tests compile into `dist/` and ship in the Docker production image. `getTsconfigTemplate({ withTests })` controls this; it is on for SDK projects only.
+- **`tsconfig.json` excludes `src/**/*.test.ts`.** Without it the tests compile into `dist/` and ship in the Docker production image. `getTsconfigTemplate()` always emits the exclusion.
 - **The emitted test code avoids template literals entirely**, using string concatenation instead. Nesting a template literal inside the template literal that generates it needs `\\\`` and `\\\${`, and getting that wrong emits a stray backslash that fails to parse. A test asserts no escaped template-literal syntax reaches the output.
 - **`@modelcontextprotocol/client` must track `@modelcontextprotocol/server`'s major.** Both are in `TEMPLATE_PACKAGES`, but the update script cannot enforce the pairing — check it whenever a major is flagged.
 
@@ -158,10 +151,8 @@ It branches per variant, and the branching is the point:
 - **HTTP** gets the per-request factory warning (state belongs at module scope).
 - **stdio** gets the stdout rule instead, since the factory warning does not apply.
 - **OAuth** adds the `OAuthError`-not-`Error` rule.
-- **FastMCP** gets a trimmed version that says plainly it ships without tests,
-  rather than leaving a silent gap.
 
-SDK variants also carry the tool-design guidance and a section on organizing
+Every variant also carries the tool-design guidance and a section on organizing
 tools as they grow — flat files, then `src/tools/` per tool, then feature
 folders. The scaffold ships the flat layout because it suits a handful of tools;
 the advice on outgrowing it belongs here rather than in a directory structure
@@ -279,16 +270,16 @@ npx @agentailor/create-mcp-server --name=my-server [options]
 |--------|-------|---------|--------|
 | `--name` | `-n` | (required) | alphanumeric, hyphens, underscores |
 | `--package-manager` | `-p` | `npm` | npm, pnpm, yarn |
-| `--framework` | `-f` | `sdk` | sdk, fastmcp (deprecated) |
+| `--framework` | `-f` | `sdk` | sdk only — accepted for compatibility; `fastmcp` exits with a removal message |
 | `--stdio` | — | `false` | flag; uses stdio transport instead of HTTP |
 | `--template` | `-t` | `stateless` | stateless, stateful — accepted for compatibility; both produce the same SDK v2 project |
-| `--oauth` | — | `false` | flag (sdk HTTP only, incompatible with --stdio) |
+| `--oauth` | — | `false` | flag (HTTP only, incompatible with --stdio) |
 | `--no-git` | — | `false` | flag |
 | `--no-skills` | — | `false` | flag; skips writing the tool-design skill |
 
-## Frameworks
+## Framework
 
-### Official MCP SDK (default) — v2
+### Official MCP SDK — v2
 
 Uses the **MCP TypeScript SDK v2** split packages with Express.js for full control:
 
@@ -296,7 +287,7 @@ Uses the **MCP TypeScript SDK v2** split packages with Express.js for full contr
 - `@modelcontextprotocol/express` — `createMcpExpressApp`, `requireBearerAuth`, `mcpAuthMetadataRouter`, `getOAuthProtectedResourceMetadataUrl`
 - `@modelcontextprotocol/node` — `toNodeHandler` (peer-depends on `hono`, so generated HTTP projects declare `hono` explicitly)
 
-Generated SDK projects serve protocol revision **`2026-07-28`** and also accept 2025-era clients.
+Generated projects serve protocol revision **`2026-07-28`** and also accept 2025-era clients.
 
 Key v2 API notes:
 - `registerTool`/`registerPrompt` take a **Standard Schema** (`inputSchema: z.object({...})`), not a raw shape. Requires zod ≥ 4.2.0 — zod 3.x fails silently on `tools/list`.
@@ -304,13 +295,16 @@ Key v2 API notes:
 - Logging/sampling/roots are deprecated (SEP-2577); templates avoid `sendLoggingMessage`.
 - Nothing in v2 puts `2026-07-28` on the wire by default — it is an explicit opt-in via `createMcpHandler` / `serveStdio`.
 
-### FastMCP (deprecated)
+### FastMCP — removed in 0.10.0
 
-**Deprecated, and scheduled for removal.** It stays on SDK v1 and ships without tests, so it no longer matches what the SDK templates offer. `src/deprecations.ts` prints a warning from `generateProject` — not from either entry point — so CLI and interactive runs both see it. It is still marked "(deprecated)" in `--help` and the interactive prompt. Do not add features to the FastMCP template; the next step is deleting it.
+FastMCP was deprecated in 0.9.0 and removed in 0.10.0. It never migrated to SDK v2 — it depends on the `@modelcontextprotocol/sdk` v1 monolith — so its projects stayed on the 2025-era protocol, and it never got the test suite SDK projects ship. Keeping it meant a second set of templates that lagged on every axis this CLI cares about.
 
-Uses [FastMCP](https://github.com/punkpeye/fastmcp), a TypeScript framework built on top of the official SDK that provides a simpler, more intuitive API.
+What remains on purpose:
 
-**FastMCP has not migrated to SDK v2** — it still depends on `@modelcontextprotocol/sdk` v1 internally, so FastMCP templates intentionally remain on v1 and speak the 2025-era protocol. Revisit when FastMCP ships v2 support.
+- **`--framework` is still parsed.** `--framework=sdk` keeps working for existing scripts. `--framework=fastmcp` exits with `FASTMCP_REMOVED_MESSAGE` (in `src/cli.ts`), which points at `npx @agentailor/create-mcp-server@0.9`, the last line that scaffolds FastMCP. The check runs before the `--name` check, so the user learns why first.
+- **The 0.9.x line on npm is the escape hatch.** Do not deprecate it on npm; it is what the removal message tells people to use.
+
+Do not re-add a second framework without a plan for keeping it at parity — tests, protocol revision, and the generated `AGENTS.md`.
 
 ## Templates
 
@@ -374,29 +368,19 @@ Features:
 - MCP Inspector CLI mode (`mcp-inspector --cli node dist/index.js`)
 - stdout is reserved for the MCP protocol — log to stderr only
 
-### FastMCP Templates
-
-A single template that supports both stateless and stateful HTTP modes via the `stateless` configuration option, plus stdio transport. Uses the FastMCP framework for simpler server setup.
-
-Features:
-- Declarative tool/prompt/resource registration
-- Built-in HTTP server (no Express setup required) or stdio transport
-- Supports stateless/stateful HTTP modes and stdio via config
-- Example prompt, tool, and resource
-
-Generated project structure for HTTP templates (+auth.ts when OAuth enabled for SDK):
+Generated project structure for HTTP templates (+auth.ts when OAuth is enabled):
 ```
 {project-name}/
 ├── src/
 │   ├── server.ts             # Creates the McpServer, registers the primitives
-│   ├── tools.ts              # Tool definitions            (SDK only)
-│   ├── prompts.ts            # Prompt definitions          (SDK only)
-│   ├── resources.ts          # Resource definitions        (SDK only)
-│   ├── notes-store.ts        # Example data layer          (SDK only)
-│   ├── notes-store.test.ts   # Store unit tests            (SDK only)
-│   ├── server.test.ts        # Payload-level tests         (SDK only)
+│   ├── tools.ts              # Tool definitions
+│   ├── prompts.ts            # Prompt definitions
+│   ├── resources.ts          # Resource definitions
+│   ├── notes-store.ts        # Example data layer
+│   ├── notes-store.test.ts   # Store unit tests
+│   ├── server.test.ts        # Payload-level tests
 │   ├── index.ts              # Server startup configuration
-│   └── auth.ts               # OAuth middleware (SDK HTTP + OAuth only)
+│   └── auth.ts               # OAuth middleware (HTTP + OAuth only)
 ├── Dockerfile        # Multi-stage Docker build
 ├── .dockerignore     # Docker ignore file
 ├── package.json
@@ -412,12 +396,12 @@ Generated project structure for stdio templates (no Dockerfile):
 {project-name}/
 ├── src/
 │   ├── server.ts             # Creates the McpServer, registers the primitives
-│   ├── tools.ts              # Tool definitions            (SDK only)
-│   ├── prompts.ts            # Prompt definitions          (SDK only)
-│   ├── resources.ts          # Resource definitions        (SDK only)
-│   ├── notes-store.ts        # Example data layer          (SDK only)
-│   ├── notes-store.test.ts   # Store unit tests            (SDK only)
-│   ├── server.test.ts        # Payload-level tests         (SDK only)
+│   ├── tools.ts              # Tool definitions
+│   ├── prompts.ts            # Prompt definitions
+│   ├── resources.ts          # Resource definitions
+│   ├── notes-store.ts        # Example data layer
+│   ├── notes-store.test.ts   # Store unit tests
+│   ├── server.test.ts        # Payload-level tests
 │   └── index.ts              # stdio transport startup
 ├── package.json
 ├── tsconfig.json
@@ -442,5 +426,4 @@ Multi-stage build for production:
 ### Health Check Endpoint
 
 All templates include a `GET /health` endpoint:
-- SDK templates: Express route added in `index.ts`
-- FastMCP: Built-in health check support (enabled by default with httpStream transport)
+- Express route added in `index.ts`

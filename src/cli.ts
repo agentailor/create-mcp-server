@@ -1,12 +1,11 @@
 import { Command, Option, InvalidArgumentError } from 'commander';
-import type { PackageManager, Framework, TransportType } from './templates/common/types.js';
+import type { PackageManager, TransportType } from './templates/common/types.js';
 
 export type TemplateType = 'stateless' | 'stateful';
 
 export interface CLIOptions {
   name: string;
   packageManager: PackageManager;
-  framework: Framework;
   transport: TransportType;
   template: TemplateType;
   oauth: boolean;
@@ -21,6 +20,13 @@ export interface ParseResult {
 
 const NAME_REGEX = /^[a-z0-9-_]+$/i;
 const VERSION = '0.9.0';
+
+export const FASTMCP_REMOVED_MESSAGE = [
+  'FastMCP support was removed in 0.10.0. New projects use the Official MCP SDK;',
+  'drop --framework, or pass --framework=sdk.',
+  'To scaffold a FastMCP project, pin the last release that supports it:',
+  '  npx @agentailor/create-mcp-server@0.9 --framework=fastmcp',
+].join('\n');
 
 function validateName(value: string): string {
   if (!NAME_REGEX.test(value)) {
@@ -44,10 +50,14 @@ export function parseArguments(): ParseResult {
         .choices(['npm', 'pnpm', 'yarn'])
         .default('npm')
     )
+    // Only one framework remains. The flag is still parsed so existing
+    // `--framework=sdk` invocations keep working, and so `fastmcp` gets a
+    // removal message instead of Commander's generic invalid-choice error.
     .addOption(
-      new Option('-f, --framework <framework>', 'Framework to use (fastmcp is deprecated)')
-        .choices(['sdk', 'fastmcp'])
-        .default('sdk')
+      new Option(
+        '-f, --framework <framework>',
+        'Framework (sdk only; accepted for compatibility)'
+      ).default('sdk')
     )
     .addOption(
       new Option(
@@ -77,6 +87,17 @@ export function parseArguments(): ParseResult {
     return { mode: 'interactive' };
   }
 
+  // Checked before --name, so a FastMCP user sees why rather than a missing-name error.
+  if (opts.framework === 'fastmcp') {
+    console.error(`\nError: ${FASTMCP_REMOVED_MESSAGE}\n`);
+    process.exit(1);
+  }
+
+  if (opts.framework !== 'sdk') {
+    console.error(`\nError: unknown --framework "${opts.framework}". The only framework is sdk.\n`);
+    process.exit(1);
+  }
+
   // CLI mode - validate required args
   if (!opts.name) {
     console.error('\nError: --name is required when using CLI arguments\n');
@@ -98,18 +119,11 @@ export function parseArguments(): ParseResult {
     process.exit(1);
   }
 
-  // Validate OAuth constraint
-  if (opts.oauth && opts.framework !== 'sdk') {
-    console.error('\nError: --oauth is only valid with --framework=sdk\n');
-    process.exit(1);
-  }
-
   return {
     mode: 'cli',
     options: {
       name: opts.name,
       packageManager: opts.packageManager as PackageManager,
-      framework: opts.framework as Framework,
       transport: (opts.stdio ? 'stdio' : 'http') as TransportType,
       template: opts.template as TemplateType,
       oauth: opts.oauth,

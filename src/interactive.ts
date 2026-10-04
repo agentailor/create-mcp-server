@@ -1,6 +1,5 @@
 import prompts from 'prompts';
-import type { PackageManager, Framework, TransportType } from './templates/common/types.js';
-import type { TemplateType } from './cli.js';
+import type { PackageManager, TransportType } from './templates/common/types.js';
 import { generateProject } from './project-generator.js';
 
 export async function runInteractiveMode(): Promise<void> {
@@ -52,31 +51,6 @@ export async function runInteractiveMode(): Promise<void> {
 
   const packageManager: PackageManager = packageManagerResponse.packageManager || 'npm';
 
-  // Framework selection
-  const frameworkResponse = await prompts(
-    {
-      type: 'select',
-      name: 'framework',
-      message: 'Framework:',
-      choices: [
-        {
-          title: 'Official MCP SDK',
-          value: 'sdk',
-          description: 'Full control with Express.js',
-        },
-        {
-          title: 'FastMCP (deprecated)',
-          value: 'fastmcp',
-          description: 'Stays on SDK v1, no tests; will be removed in a future release',
-        },
-      ],
-      initial: 0,
-    },
-    { onCancel }
-  );
-
-  const framework: Framework = frameworkResponse.framework || 'sdk';
-
   // Transport selection
   const transportResponse = await prompts(
     {
@@ -102,39 +76,9 @@ export async function runInteractiveMode(): Promise<void> {
 
   const transport: TransportType = transportResponse.transport || 'http';
 
-  // Only asked for FastMCP HTTP, where it maps to a real `stateless` config
-  // flag. SDK projects generate the same server either way, so asking would be
-  // a meaningless choice.
-  let templateType: TemplateType = 'stateless';
-  if (transport === 'http' && framework === 'fastmcp') {
-    const templateTypeResponse = await prompts(
-      {
-        type: 'select',
-        name: 'templateType',
-        message: 'Server mode:',
-        choices: [
-          {
-            title: 'Stateless',
-            value: 'stateless',
-            description: 'No session state between requests',
-          },
-          {
-            title: 'Stateful',
-            value: 'stateful',
-            description: 'Session-based server with SSE support',
-          },
-        ],
-        initial: 0,
-      },
-      { onCancel }
-    );
-
-    templateType = templateTypeResponse.templateType || 'stateless';
-  }
-
   // OAuth prompt - available for any SDK HTTP project
   let withOAuth = false;
-  if (transport === 'http' && framework === 'sdk') {
+  if (transport === 'http') {
     const oauthResponse = await prompts(
       {
         type: 'confirm',
@@ -173,9 +117,7 @@ export async function runInteractiveMode(): Promise<void> {
   await generateProject({
     projectName,
     packageManager,
-    framework,
     transport,
-    templateType,
     withOAuth,
     withGitInit,
     withSkills,

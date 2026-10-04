@@ -3,9 +3,8 @@ import { getAgentsMdTemplate } from './agents.md.js';
 
 describe('getAgentsMdTemplate', () => {
   const projectName = 'test-project';
-  const sdkHttp = { framework: 'sdk', transport: 'http' } as const;
-  const sdkStdio = { framework: 'sdk', transport: 'stdio' } as const;
-  const fastmcp = { framework: 'fastmcp', transport: 'http' } as const;
+  const sdkHttp = { transport: 'http' } as const;
+  const sdkStdio = { transport: 'stdio' } as const;
 
   it('should title the document with the project name', () => {
     expect(getAgentsMdTemplate(projectName, sdkHttp)).toContain(`# ${projectName}`);
@@ -14,7 +13,7 @@ describe('getAgentsMdTemplate', () => {
   // The shipped example is meant to be deleted once real tools exist, but
   // AGENTS.md stays. Anything naming the example rots the moment it goes.
   it('should not reference the shipped example', () => {
-    for (const options of [sdkHttp, sdkStdio, fastmcp]) {
+    for (const options of [sdkHttp, sdkStdio]) {
       const template = getAgentsMdTemplate(projectName, options);
       expect(template).not.toContain('notes-store');
       expect(template).not.toContain('list_notes');
@@ -25,7 +24,7 @@ describe('getAgentsMdTemplate', () => {
   });
 
   it('should say the example is meant to be replaced', () => {
-    for (const options of [sdkHttp, fastmcp]) {
+    for (const options of [sdkHttp, sdkStdio]) {
       expect(getAgentsMdTemplate(projectName, options)).toContain('meant to be replaced');
     }
   });
@@ -97,13 +96,6 @@ describe('getAgentsMdTemplate', () => {
       expect(template).toContain('not a quota to match');
       expect(template).toContain('src/server.test.ts');
     });
-
-    it('should not promise tests FastMCP projects do not ship', () => {
-      const template = getAgentsMdTemplate(projectName, fastmcp);
-      expect(template).toContain('ships without a test setup');
-      expect(template).not.toContain('src/server.test.ts');
-      expect(template).not.toContain('npm test');
-    });
   });
 
   describe('layout', () => {
@@ -113,12 +105,6 @@ describe('getAgentsMdTemplate', () => {
       expect(template).toContain('MCP imports');
       expect(template).toContain('Keep that seam');
     });
-
-    it('should describe the single-file layout for FastMCP projects', () => {
-      const template = getAgentsMdTemplate(projectName, fastmcp);
-      expect(template).toContain('the FastMCP server and its tools');
-      expect(template).not.toContain('src/tools.ts');
-    });
   });
 
   describe('commands', () => {
@@ -127,12 +113,6 @@ describe('getAgentsMdTemplate', () => {
       expect(template).toContain('yarn dev');
       expect(template).toContain('yarn build');
       expect(template).not.toContain('npm run');
-    });
-
-    it('should omit the test command for FastMCP projects', () => {
-      const template = getAgentsMdTemplate(projectName, fastmcp);
-      expect(template).toContain('npm run build');
-      expect(template).not.toContain('npm test');
     });
   });
 

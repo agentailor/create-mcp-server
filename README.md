@@ -29,10 +29,10 @@ npx @agentailor/create-mcp-server --name=my-server
 |--------|-------|---------|-------------|
 | `--name` | `-n` | — | Project name (required in CLI mode) |
 | `--package-manager` | `-p` | `npm` | Package manager: npm, pnpm, yarn |
-| `--framework` | `-f` | `sdk` | Framework: sdk, fastmcp (deprecated) |
+| `--framework` | `-f` | `sdk` | Accepted for compatibility; `sdk` is the only framework |
 | `--stdio` | — | `false` | Use stdio transport (for local clients) |
 | `--template` | `-t` | `stateless` | Accepted for compatibility; SDK v2 serves both modes through one per-request idiom |
-| `--oauth` | — | `false` | Enable OAuth (sdk HTTP only, incompatible with --stdio) |
+| `--oauth` | — | `false` | Enable OAuth (HTTP only, incompatible with --stdio) |
 | `--no-git` | — | `false` | Skip git initialization |
 | `--no-skills` | — | `false` | Skip adding the tool-design skill |
 | `--help` | `-h` | — | Show help |
@@ -51,7 +51,6 @@ npx @agentailor/create-mcp-server --name=my-server --stdio
 npx @agentailor/create-mcp-server \
   --name=my-auth-server \
   --package-manager=pnpm \
-  --framework=sdk \
   --oauth
 
 # Short flags
@@ -60,54 +59,22 @@ npx @agentailor/create-mcp-server -n my-server -p yarn --stdio
 
 ## Features
 
-- **MCP SDK v2** — SDK projects serve protocol revision `2026-07-28` and still accept 2025-era clients
-- **Official MCP SDK** — FastMCP is still available but deprecated
+- **MCP SDK v2** — projects serve protocol revision `2026-07-28` and still accept 2025-era clients
 - **Two transport types** — HTTP (streamable) or stdio (for local clients)
 - **Stateless by design** — the SDK handler builds a fresh server per request, so HTTP servers scale without sticky sessions
-- **Optional OAuth** — OIDC-compliant authentication (SDK HTTP only) ([setup guide](docs/oauth-setup.md))
+- **Optional OAuth** — OIDC-compliant authentication (HTTP only) ([setup guide](docs/oauth-setup.md))
 - **Package manager choice** — npm, pnpm, or yarn
 - **TypeScript ready** — ready to customize
 - **Docker ready** — production Dockerfile included (HTTP transport)
 - **MCP Inspector** — built-in debugging with `npm run inspect`
 
-## Frameworks
+## Official MCP SDK
 
-| Framework | Description |
-|-----------|-------------|
-| **Official MCP SDK** (default) | SDK v2, full control with Express.js, supports OAuth |
-| **FastMCP** (deprecated) | Simpler API with less boilerplate (still on SDK v1) |
-
-### Official MCP SDK
-
-SDK projects are generated against the [MCP TypeScript SDK v2](https://ts.sdk.modelcontextprotocol.io/v2/) — the split `@modelcontextprotocol/server`, `@modelcontextprotocol/express`, and `@modelcontextprotocol/node` packages, rather than the v1 `@modelcontextprotocol/sdk` monolith.
+Projects are generated against the [MCP TypeScript SDK v2](https://ts.sdk.modelcontextprotocol.io/v2/) — the split `@modelcontextprotocol/server`, `@modelcontextprotocol/express`, and `@modelcontextprotocol/node` packages, rather than the v1 `@modelcontextprotocol/sdk` monolith.
 
 HTTP servers are built on `createMcpHandler`, which runs the server factory once per request. They serve protocol revision `2026-07-28` and also accept 2025-era clients. stdio servers use `serveStdio`, which negotiates the era per connection.
 
-### FastMCP (deprecated)
-
-> **Deprecated:** FastMCP support will be removed in a future release. Generating a FastMCP project prints a warning. New projects should use the Official MCP SDK; if you need to keep scaffolding FastMCP projects after the removal, pin `npx @agentailor/create-mcp-server@0.9`.
-
-[FastMCP](https://github.com/punkpeye/fastmcp) is a TypeScript framework built on top of the official MCP SDK that provides a simpler, more intuitive API for building MCP servers.
-
-> **Note:** FastMCP has not migrated to SDK v2 — it still depends on `@modelcontextprotocol/sdk` v1 internally, so FastMCP projects speak the 2025-era protocol. Choose the Official MCP SDK if you need protocol revision `2026-07-28`.
-
-```typescript
-import { FastMCP } from "fastmcp";
-import { z } from "zod";
-
-const server = new FastMCP({ name: "My Server", version: "1.0.0" });
-
-server.addTool({
-  name: "add",
-  description: "Add two numbers",
-  parameters: z.object({ a: z.number(), b: z.number() }),
-  execute: async ({ a, b }) => String(a + b),
-});
-
-server.start({ transportType: "httpStream", httpStream: { port: 3000 } });
-```
-
-Learn more: [FastMCP Documentation](https://github.com/punkpeye/fastmcp)
+> **FastMCP was removed in 0.10.0.** It never moved to SDK v2, so FastMCP projects stayed on the 2025-era protocol and shipped without tests. To scaffold one anyway, pin the last release that supports it: `npx @agentailor/create-mcp-server@0.9 --framework=fastmcp`.
 
 ## Transport Types
 
@@ -115,7 +82,7 @@ Learn more: [FastMCP Documentation](https://github.com/punkpeye/fastmcp)
 |---------|------------------------|-------|
 | Use case | Remote access, cloud deployment | Local clients (Claude Desktop) |
 | Protocol | HTTP | stdin/stdout |
-| OAuth support | ✓ (SDK only) | — |
+| OAuth support | ✓ | — |
 | Docker deployment | ✓ | — |
 | Port configuration | ✓ | — |
 
@@ -152,9 +119,9 @@ my-mcp-server/
 └── README.md
 ```
 
-SDK projects come with a worked example — a small notes server — and a test suite
+Projects come with a worked example — a small notes server — and a test suite
 that runs green immediately, so there is a working pattern to copy when you add
-your own tools. FastMCP projects ship the example only, without tests, for now.
+your own tools.
 
 Projects also get Agentailor's [tool-design](https://github.com/agentailor/skills)
 skill at `.agents/skills/`, so a coding agent working in the project has the
@@ -169,7 +136,7 @@ to the protocol over stdio).
 
 **Scripts:**
 - `npm run dev` — build and start the server
-- `npm test` — run the test suite (SDK projects)
+- `npm test` — run the test suite
 - `npm run inspect` — open MCP Inspector (update URL in `package.json` if needed)
 
 ## Learning Resources
@@ -178,7 +145,6 @@ to the protocol over stdio).
 |-------|-------------|
 | [Create Your First MCP Server in 5 Minutes](https://blog.agentailor.com/posts/create-your-first-mcp-server-in-5-minutes?utm_source=github&utm_medium=readme&utm_campaign=create-mcp-server) | Build your first production-ready MCP server. A complete beginner guide to scaffolding a Fetch MCP server with TypeScript. |
 | [Securing MCP Servers with Keycloak](https://blog.agentailor.com/posts/oauth-for-mcp-servers-practical-guide-keycloak?utm_source=github&utm_medium=readme&utm_campaign=create-mcp-server) | Learn how to secure your MCP servers with OAuth authentication using Keycloak. |
-| [Getting Started with FastMCP](https://blog.agentailor.com/posts/getting-started-with-fastmcp?utm_source=github&utm_medium=readme&utm_campaign=create-mcp-server) | Build MCP servers faster with FastMCP — the TypeScript framework inspired by Python's most popular MCP library. |
 | [OAuth for MCP Clients (Next.js + LangGraph.js)](https://blog.agentailor.com/posts/mcp-client-oauth-nextjs-langgraph?utm_source=github&utm_medium=readme&utm_campaign=create-mcp-server) | Implement OAuth authentication in your MCP client using Next.js and the MCP SDK. |
 
 ## Need help building MCP servers or agent infrastructure?

@@ -6,11 +6,9 @@ import { getTsconfigTemplate } from './templates/common/tsconfig.json.js';
 import { getGitignoreTemplate } from './templates/common/gitignore.js';
 import { getEnvExampleTemplate } from './templates/common/env.example.js';
 import { getAgentsMdTemplate } from './templates/common/agents.md.js';
-import { warnIfDeprecated } from './deprecations.js';
 import { copySkill, SKILLS_UPDATE_COMMAND, SKILLS_INSTALL_HINT, SKILLS_DIR } from './skills.js';
 import type {
   CommonTemplateOptions,
-  Framework,
   PackageManager,
   TransportType,
 } from './templates/common/types.js';
@@ -27,17 +25,11 @@ import {
 } from './templates/sdk/stateless/index.js';
 import { getAuthTemplate as getSdkAuthTemplate } from './templates/sdk/stateful/index.js';
 import {
-  getServerTemplate as getFastMCPServerTemplate,
-  getIndexTemplate as getFastMCPIndexTemplate,
-  getReadmeTemplate as getFastMCPReadmeTemplate,
-} from './templates/fastmcp/index.js';
-import {
   getServerTemplate as getSdkStdioServerTemplate,
   getIndexTemplate as getSdkStdioIndexTemplate,
   getReadmeTemplate as getSdkStdioReadmeTemplate,
 } from './templates/sdk/stdio/index.js';
 import { getDockerfileTemplate, getDockerignoreTemplate } from './templates/deployment/index.js';
-import type { TemplateType } from './cli.js';
 
 // Auth is keyed off `withOAuth`, never off the template type - see
 // "Why stateless and stateful are identical" in AGENTS.md.
@@ -46,12 +38,6 @@ const sdkHttpTemplateFunctions = {
   getIndexTemplate: getSdkStatelessIndexTemplate,
   getReadmeTemplate: getSdkStatelessReadmeTemplate,
   getAuthTemplate: getSdkAuthTemplate,
-};
-
-const fastmcpTemplateFunctions = {
-  getServerTemplate: getFastMCPServerTemplate,
-  getIndexTemplate: getFastMCPIndexTemplate,
-  getReadmeTemplate: getFastMCPReadmeTemplate,
 };
 
 export const packageManagerCommands: Record<PackageManager, { install: string; dev: string }> = {
@@ -63,34 +49,18 @@ export const packageManagerCommands: Record<PackageManager, { install: string; d
 export interface ProjectConfig {
   projectName: string;
   packageManager: PackageManager;
-  framework: Framework;
   transport: TransportType;
-  templateType: TemplateType;
   withOAuth: boolean;
   withGitInit: boolean;
   withSkills: boolean;
 }
 
 export async function generateProject(config: ProjectConfig): Promise<void> {
-  const {
-    projectName,
-    packageManager,
-    framework,
-    transport,
-    templateType,
-    withOAuth,
-    withGitInit,
-    withSkills,
-  } = config;
-
-  // Here rather than in either entry point, so CLI and interactive runs both warn.
-  warnIfDeprecated(framework);
+  const { projectName, packageManager, transport, withOAuth, withGitInit, withSkills } = config;
 
   const templateOptions: CommonTemplateOptions = {
     withOAuth: transport === 'http' ? withOAuth : false,
     packageManager,
-    framework,
-    stateless: transport === 'stdio' ? true : templateType === 'stateless',
     transport,
   };
 
@@ -103,23 +73,7 @@ export async function generateProject(config: ProjectConfig): Promise<void> {
   // Build list of files to write
   const filesToWrite: Promise<void>[] = [];
 
-  if (framework === 'fastmcp') {
-    // FastMCP templates
-    filesToWrite.push(
-      writeFile(
-        join(srcPath, 'server.ts'),
-        fastmcpTemplateFunctions.getServerTemplate(projectName)
-      ),
-      writeFile(
-        join(srcPath, 'index.ts'),
-        fastmcpTemplateFunctions.getIndexTemplate(templateOptions)
-      ),
-      writeFile(
-        join(projectPath, 'README.md'),
-        fastmcpTemplateFunctions.getReadmeTemplate(projectName, templateOptions)
-      )
-    );
-  } else if (transport === 'stdio') {
+  if (transport === 'stdio') {
     // SDK stdio templates
     filesToWrite.push(
       writeFile(join(srcPath, 'server.ts'), getSdkStdioServerTemplate(projectName)),
@@ -145,18 +99,16 @@ export async function generateProject(config: ProjectConfig): Promise<void> {
     }
   }
 
-  // server.ts only composes these; they are identical on both SDK transports.
-  if (framework === 'sdk') {
-    filesToWrite.push(
-      writeFile(join(srcPath, 'tools.ts'), getSdkToolsTemplate()),
-      writeFile(join(srcPath, 'prompts.ts'), getSdkPromptsTemplate()),
-      writeFile(join(srcPath, 'resources.ts'), getSdkResourcesTemplate()),
-      writeFile(join(srcPath, 'notes-store.ts'), getSdkStoreTemplate()),
-      // Two layers: the store in isolation, and the payload an agent reads.
-      writeFile(join(srcPath, 'notes-store.test.ts'), getSdkStoreTestTemplate()),
-      writeFile(join(srcPath, 'server.test.ts'), getSdkServerTestTemplate())
-    );
-  }
+  // server.ts only composes these; they are identical on both transports.
+  filesToWrite.push(
+    writeFile(join(srcPath, 'tools.ts'), getSdkToolsTemplate()),
+    writeFile(join(srcPath, 'prompts.ts'), getSdkPromptsTemplate()),
+    writeFile(join(srcPath, 'resources.ts'), getSdkResourcesTemplate()),
+    writeFile(join(srcPath, 'notes-store.ts'), getSdkStoreTemplate()),
+    // Two layers: the store in isolation, and the payload an agent reads.
+    writeFile(join(srcPath, 'notes-store.test.ts'), getSdkStoreTestTemplate()),
+    writeFile(join(srcPath, 'server.test.ts'), getSdkServerTestTemplate())
+  );
 
   // Common files for all templates
   filesToWrite.push(
@@ -164,10 +116,7 @@ export async function generateProject(config: ProjectConfig): Promise<void> {
       join(projectPath, 'package.json'),
       getPackageJsonTemplate(projectName, templateOptions)
     ),
-    writeFile(
-      join(projectPath, 'tsconfig.json'),
-      getTsconfigTemplate({ withTests: framework === 'sdk' })
-    ),
+    writeFile(join(projectPath, 'tsconfig.json'), getTsconfigTemplate()),
     writeFile(join(projectPath, '.gitignore'), getGitignoreTemplate()),
     writeFile(join(projectPath, '.env.example'), getEnvExampleTemplate(templateOptions)),
     writeFile(join(projectPath, 'AGENTS.md'), getAgentsMdTemplate(projectName, templateOptions))
@@ -207,9 +156,7 @@ export async function generateProject(config: ProjectConfig): Promise<void> {
   }
 
   const commands = packageManagerCommands[packageManager];
-  const frameworkName = framework === 'fastmcp' ? 'FastMCP' : 'MCP SDK';
-
-  console.log(`\nCreated ${projectName} with ${frameworkName} (${transport}) at ${projectPath}`);
+  console.log(`\nCreated ${projectName} with MCP SDK (${transport}) at ${projectPath}`);
   console.log(`\nNext steps:`);
   console.log(`  cd ${projectName}`);
   console.log(`  ${commands.install}`);

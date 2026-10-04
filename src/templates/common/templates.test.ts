@@ -37,50 +37,20 @@ describe('common templates', () => {
       expect(pkg.dependencies['dotenv']).toBeDefined();
     });
 
-    it('should use FastMCP package when framework is fastmcp', () => {
-      const template = getPackageJsonTemplate(projectName, { framework: 'fastmcp' });
-      const pkg = JSON.parse(template);
-      expect(pkg.dependencies['fastmcp']).toBeDefined();
-      // FastMCP depends on the v1 SDK transitively, never directly
-      expect(pkg.dependencies['@modelcontextprotocol/sdk']).toBeUndefined();
-      expect(pkg.dependencies['express']).toBeUndefined();
-    });
-
-    it('should NOT pull SDK v2 packages into FastMCP projects', () => {
-      const template = getPackageJsonTemplate(projectName, { framework: 'fastmcp' });
-      const pkg = JSON.parse(template);
-      expect(pkg.dependencies['@modelcontextprotocol/server']).toBeUndefined();
-      expect(pkg.dependencies['@modelcontextprotocol/express']).toBeUndefined();
-      expect(pkg.dependencies['@modelcontextprotocol/node']).toBeUndefined();
-    });
-
-    it('should include dotenv for FastMCP', () => {
-      const template = getPackageJsonTemplate(projectName, { framework: 'fastmcp' });
-      const pkg = JSON.parse(template);
-      expect(pkg.dependencies['dotenv']).toBeDefined();
-    });
-
     it('should include jose dependency when withOAuth is true for SDK', () => {
-      const template = getPackageJsonTemplate(projectName, { framework: 'sdk', withOAuth: true });
+      const template = getPackageJsonTemplate(projectName, { withOAuth: true });
       const pkg = JSON.parse(template);
       expect(pkg.dependencies['jose']).toBeDefined();
     });
 
-    it('should not include @types/express for FastMCP', () => {
-      const template = getPackageJsonTemplate(projectName, { framework: 'fastmcp' });
-      const pkg = JSON.parse(template);
-      expect(pkg.devDependencies['@types/express']).toBeUndefined();
-    });
-
     it('should include @types/express for SDK', () => {
-      const template = getPackageJsonTemplate(projectName, { framework: 'sdk' });
+      const template = getPackageJsonTemplate(projectName, {});
       const pkg = JSON.parse(template);
       expect(pkg.devDependencies['@types/express']).toBeDefined();
     });
 
     it('should NOT include express or @types/express for SDK stdio', () => {
       const template = getPackageJsonTemplate(projectName, {
-        framework: 'sdk',
         transport: 'stdio',
       });
       const pkg = JSON.parse(template);
@@ -94,7 +64,6 @@ describe('common templates', () => {
 
     it('should use inspect:tools, inspect:prompts, inspect:resources scripts for stdio transport', () => {
       const template = getPackageJsonTemplate(projectName, {
-        framework: 'sdk',
         transport: 'stdio',
       });
       const pkg = JSON.parse(template);
@@ -105,7 +74,7 @@ describe('common templates', () => {
     });
 
     it('should use http inspect script for http transport (default)', () => {
-      const template = getPackageJsonTemplate(projectName, { framework: 'sdk', transport: 'http' });
+      const template = getPackageJsonTemplate(projectName, { transport: 'http' });
       const pkg = JSON.parse(template);
       expect(pkg.scripts.inspect).toContain('http://localhost:3000/mcp');
     });
@@ -113,11 +82,7 @@ describe('common templates', () => {
     // The inspector devDependency requires >=22.19.0; a lower floor makes npm
     // emit an EBADENGINE warning on install.
     it('should declare a node engine satisfying the inspector requirement', () => {
-      for (const options of [
-        { framework: 'sdk' as const, transport: 'http' as const },
-        { framework: 'sdk' as const, transport: 'stdio' as const },
-        { framework: 'fastmcp' as const },
-      ]) {
+      for (const options of [{ transport: 'http' as const }, { transport: 'stdio' as const }]) {
         const pkg = JSON.parse(getPackageJsonTemplate(projectName, options));
         expect(pkg.engines.node).toBe('>=22.19.0');
       }
@@ -141,6 +106,11 @@ describe('common templates', () => {
     it('should be valid JSON', () => {
       const template = getTsconfigTemplate();
       expect(() => JSON.parse(template)).not.toThrow();
+    });
+
+    it('should keep test files out of the build', () => {
+      const config = JSON.parse(getTsconfigTemplate());
+      expect(config.exclude).toContain('src/**/*.test.ts');
     });
 
     it('should target ES2022 with NodeNext modules', () => {
@@ -170,19 +140,9 @@ describe('common templates', () => {
       expect(template).toContain('PORT=');
     });
 
-    it('should include ALLOWED_HOSTS hint for SDK framework', () => {
-      const template = getEnvExampleTemplate({ framework: 'sdk' });
-      expect(template).toContain('ALLOWED_HOSTS');
-    });
-
-    it('should include ALLOWED_HOSTS hint by default (no framework specified)', () => {
+    it('should include ALLOWED_HOSTS hint for HTTP transport', () => {
       const template = getEnvExampleTemplate();
       expect(template).toContain('ALLOWED_HOSTS');
-    });
-
-    it('should NOT include ALLOWED_HOSTS for FastMCP framework', () => {
-      const template = getEnvExampleTemplate({ framework: 'fastmcp' });
-      expect(template).not.toContain('ALLOWED_HOSTS');
     });
 
     it('should NOT include PORT for stdio transport', () => {

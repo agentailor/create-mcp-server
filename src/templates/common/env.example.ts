@@ -8,14 +8,11 @@ export function getEnvExampleTemplate(options?: CommonTemplateOptions): string {
   }
 
   const withOAuth = options?.withOAuth ?? false;
-  const isSdk = options?.framework === 'sdk' || !options?.framework;
 
-  const allowedHostsVar = isSdk
-    ? `
+  const allowedHostsVar = `
 # Comma-separated list of additional allowed hosts (for deployment behind reverse proxies)
 # ALLOWED_HOSTS=my-server.example.com,my-server.us-central1.run.app
-`
-    : '';
+`;
 
   const oauthVars = withOAuth
     ? `
