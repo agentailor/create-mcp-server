@@ -223,9 +223,30 @@ meant to be committed so the whole team gets the same copy.
 
 ## Publishing
 
-```bash
-npm publish --access public
-```
+Releases are published by CI, not from a laptop. The flow:
+
+1. Bump the version in `package.json`, `package-lock.json` and `VERSION` in
+   `src/cli.ts` (`npm version X.Y.Z --no-git-tag-version` covers the first two),
+   in a `chore: release X.Y.Z` PR.
+2. After it merges, create a GitHub release tagged `vX.Y.Z` on `main`
+   (`gh release create vX.Y.Z --target main --notes-file ...`).
+3. `.github/workflows/publish.yml` runs on the published release, checks the tag
+   matches `package.json`, builds, and runs `npm publish`.
+
+**Authentication is npm trusted publishing (OIDC), not a token.** The package's
+npm settings name this repo and `publish.yml` as its trusted publisher, and the
+workflow's `id-token: write` permission lets npm verify the run. There is no
+`NPM_TOKEN` to rotate — that secret expired once and silently broke a release.
+Two things keep it working:
+
+- **npm must be ≥ 11.5.1.** Node 22 ships npm 10, so the workflow upgrades npm
+  before publishing. Don't remove that step.
+- **Renaming `publish.yml` breaks publishing** until the trusted publisher on
+  npmjs.com is updated to the new filename.
+
+If a release's publish run fails, fix the cause and re-run it manually with the
+workflow's `workflow_dispatch` trigger (`gh workflow run publish.yml -f tag=vX.Y.Z`)
+rather than deleting and recreating the release.
 
 ## CLI Modes
 
