@@ -33,7 +33,6 @@ const TEMPLATE_PACKAGES = [
   '@modelcontextprotocol/client',
   'express',
   'hono',
-  'fastmcp',
   'zod',
   'dotenv',
   'jose',

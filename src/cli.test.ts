@@ -38,7 +38,6 @@ describe('CLI argument parsing', () => {
     const { parseArguments } = await import('./cli.js');
     const result = parseArguments();
     expect(result.options?.packageManager).toBe('npm');
-    expect(result.options?.framework).toBe('sdk');
     expect(result.options?.transport).toBe('http');
     expect(result.options?.template).toBe('stateless');
     expect(result.options?.oauth).toBe(false);
@@ -51,7 +50,7 @@ describe('CLI argument parsing', () => {
       'create-mcp-server',
       '--name=test-project',
       '--package-manager=pnpm',
-      '--framework=fastmcp',
+      '--framework=sdk',
       '--template=stateful',
       '--no-git',
     ];
@@ -60,7 +59,6 @@ describe('CLI argument parsing', () => {
     expect(result.options).toEqual({
       name: 'test-project',
       packageManager: 'pnpm',
-      framework: 'fastmcp',
       transport: 'http',
       template: 'stateful',
       oauth: false,
@@ -86,7 +84,6 @@ describe('CLI argument parsing', () => {
     const result = parseArguments();
     expect(result.options?.name).toBe('my-project');
     expect(result.options?.packageManager).toBe('yarn');
-    expect(result.options?.framework).toBe('sdk');
     expect(result.options?.template).toBe('stateful');
   });
 
@@ -102,7 +99,6 @@ describe('CLI argument parsing', () => {
     const { parseArguments } = await import('./cli.js');
     const result = parseArguments();
     expect(result.options?.oauth).toBe(true);
-    expect(result.options?.framework).toBe('sdk');
     expect(result.options?.template).toBe('stateful');
   });
 
@@ -113,7 +109,6 @@ describe('CLI argument parsing', () => {
     const { parseArguments } = await import('./cli.js');
     const result = parseArguments();
     expect(result.options?.oauth).toBe(true);
-    expect(result.options?.framework).toBe('sdk');
     expect(result.options?.template).toBe('stateless');
   });
 
@@ -138,8 +133,10 @@ describe('CLI argument parsing', () => {
     consoleError.mockRestore();
   });
 
-  it('exits with error when --oauth used without sdk framework', async () => {
-    process.argv = ['node', 'create-mcp-server', '--name=test', '--oauth', '--framework=fastmcp'];
+  // FastMCP was removed in 0.10.0. The flag value must explain that and say how
+  // to get the old behaviour, not fall through to a generic error.
+  it('exits with a removal message for --framework=fastmcp', async () => {
+    process.argv = ['node', 'create-mcp-server', '--name=test', '--framework=fastmcp'];
 
     let exitCode: number | undefined;
     process.exit = vi.fn((code) => {
@@ -153,7 +150,10 @@ describe('CLI argument parsing', () => {
     expect(() => parseArguments()).toThrow('process.exit called');
     expect(exitCode).toBe(1);
     expect(consoleError).toHaveBeenCalledWith(
-      expect.stringContaining('--oauth is only valid with --framework=sdk')
+      expect.stringContaining('FastMCP support was removed in 0.10.0')
+    );
+    expect(consoleError).toHaveBeenCalledWith(
+      expect.stringContaining('@agentailor/create-mcp-server@0.9 --framework=fastmcp')
     );
 
     consoleError.mockRestore();
@@ -196,18 +196,43 @@ describe('CLI argument parsing', () => {
     expect(result.options?.oauth).toBe(false);
   });
 
-  it('--stdio with --framework=fastmcp is valid', async () => {
-    process.argv = [
-      'node',
-      'create-mcp-server',
-      '--name=my-server',
-      '--stdio',
-      '--framework=fastmcp',
-    ];
+  // Checked before --name, so the user learns FastMCP is gone rather than
+  // fixing --name first and only then hitting the removal.
+  it('reports the FastMCP removal even when --name is missing', async () => {
+    process.argv = ['node', 'create-mcp-server', '-f', 'fastmcp'];
+
+    process.exit = vi.fn(() => {
+      throw new Error('process.exit called');
+    }) as never;
+
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+
     const { parseArguments } = await import('./cli.js');
-    const result = parseArguments();
-    expect(result.options?.transport).toBe('stdio');
-    expect(result.options?.framework).toBe('fastmcp');
+    expect(() => parseArguments()).toThrow('process.exit called');
+    expect(consoleError).toHaveBeenCalledWith(
+      expect.stringContaining('FastMCP support was removed')
+    );
+
+    consoleError.mockRestore();
+  });
+
+  it('exits with error for an unknown --framework', async () => {
+    process.argv = ['node', 'create-mcp-server', '--name=test', '--framework=nope'];
+
+    let exitCode: number | undefined;
+    process.exit = vi.fn((code) => {
+      exitCode = code as number;
+      throw new Error('process.exit called');
+    }) as never;
+
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const { parseArguments } = await import('./cli.js');
+    expect(() => parseArguments()).toThrow('process.exit called');
+    expect(exitCode).toBe(1);
+    expect(consoleError).toHaveBeenCalledWith(expect.stringContaining('unknown --framework'));
+
+    consoleError.mockRestore();
   });
 
   it('exits with error when --stdio combined with --oauth', async () => {

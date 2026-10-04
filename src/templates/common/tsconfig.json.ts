@@ -1,11 +1,7 @@
-export function getTsconfigTemplate(options?: { withTests?: boolean }): string {
-  const withTests = options?.withTests ?? false;
-
+export function getTsconfigTemplate(): string {
   // Test files are type-checked by the editor and by vitest, but kept out of
   // the build so they never reach dist/ or the production Docker image.
-  const exclude = withTests
-    ? ['node_modules', 'dist', 'src/**/*.test.ts']
-    : ['node_modules', 'dist'];
+  const exclude = ['node_modules', 'dist', 'src/**/*.test.ts'];
 
   const tsconfig = {
     compilerOptions: {

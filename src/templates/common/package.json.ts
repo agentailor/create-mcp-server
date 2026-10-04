@@ -5,11 +5,7 @@ export function getPackageJsonTemplate(
   options?: CommonTemplateOptions
 ): string {
   const withOAuth = options?.withOAuth ?? false;
-  const framework = options?.framework ?? 'sdk';
   const transport = options?.transport ?? 'http';
-
-  // Tests ship with SDK projects only; FastMCP has no test setup yet.
-  const withTests = framework === 'sdk';
 
   let dependencies: Record<string, string>;
   let devDependencies: Record<string, string>;
@@ -28,19 +24,7 @@ export function getPackageJsonTemplate(
     '@modelcontextprotocol/client': '^2.0.0',
   };
 
-  if (framework === 'fastmcp') {
-    // FastMCP pulls in @modelcontextprotocol/sdk v1 itself, so this branch
-    // stays on v1 and must not gain the v2 packages.
-    dependencies = {
-      fastmcp: '^4.20.14',
-      ...zodDependency,
-      ...dotEnvDependency,
-    };
-
-    devDependencies = {
-      ...commonDevDependencies,
-    };
-  } else if (transport === 'stdio') {
+  if (transport === 'stdio') {
     // Official SDK v2 stdio - no express needed
     dependencies = {
       '@modelcontextprotocol/server': '^2.0.0',
@@ -94,7 +78,8 @@ export function getPackageJsonTemplate(
       build: 'tsc',
       dev: 'tsc && node dist/index.js',
       start: 'node dist/index.js',
-      ...(withTests ? { test: 'vitest run', 'test:watch': 'vitest' } : {}),
+      test: 'vitest run',
+      'test:watch': 'vitest',
       ...inspectScripts,
     },
     dependencies,
