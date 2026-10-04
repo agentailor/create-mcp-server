@@ -65,9 +65,9 @@ export async function runInteractiveMode(): Promise<void> {
           description: 'Full control with Express.js',
         },
         {
-          title: 'FastMCP',
+          title: 'FastMCP (deprecated)',
           value: 'fastmcp',
-          description: 'Simpler API, less boilerplate',
+          description: 'Stays on SDK v1, no tests; will be removed in a future release',
         },
       ],
       initial: 0,

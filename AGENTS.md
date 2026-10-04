@@ -12,6 +12,8 @@ create-mcp-server/
 │   ├── index.ts                    # CLI entry point
 │   ├── cli.ts                      # CLI argument parsing (Commander.js)
 │   ├── cli.test.ts                 # Tests for CLI argument parsing
+│   ├── deprecations.ts             # Deprecation warnings (FastMCP)
+│   ├── deprecations.test.ts        # Tests for the warnings
 │   ├── skills.ts                   # Copies the vendored tool-design skill
 │   ├── skills.test.ts              # Tests for the skill copy
 │   ├── assets/                     # Non-TS files copied into dist/ at build
@@ -56,7 +58,7 @@ create-mcp-server/
 │       │       ├── index.ts        # Barrel export + getIndexTemplate (serveStdio)
 │       │       ├── readme.ts       # README.md template (for local clients)
 │       │       └── templates.test.ts
-│       └── fastmcp/                # FastMCP templates
+│       └── fastmcp/                # FastMCP templates (deprecated)
 │           ├── server.ts           # FastMCP server definition template
 │           ├── index.ts            # Barrel export + getIndexTemplate
 │           ├── readme.ts           # README.md template
@@ -246,7 +248,7 @@ npx @agentailor/create-mcp-server --name=my-server [options]
 |--------|-------|---------|--------|
 | `--name` | `-n` | (required) | alphanumeric, hyphens, underscores |
 | `--package-manager` | `-p` | `npm` | npm, pnpm, yarn |
-| `--framework` | `-f` | `sdk` | sdk, fastmcp |
+| `--framework` | `-f` | `sdk` | sdk, fastmcp (deprecated) |
 | `--stdio` | — | `false` | flag; uses stdio transport instead of HTTP |
 | `--template` | `-t` | `stateless` | stateless, stateful — accepted for compatibility; both produce the same SDK v2 project |
 | `--oauth` | — | `false` | flag (sdk HTTP only, incompatible with --stdio) |
@@ -271,7 +273,9 @@ Key v2 API notes:
 - Logging/sampling/roots are deprecated (SEP-2577); templates avoid `sendLoggingMessage`.
 - Nothing in v2 puts `2026-07-28` on the wire by default — it is an explicit opt-in via `createMcpHandler` / `serveStdio`.
 
-### FastMCP
+### FastMCP (deprecated)
+
+**Deprecated, and scheduled for removal.** It stays on SDK v1 and ships without tests, so it no longer matches what the SDK templates offer. `src/deprecations.ts` prints a warning from `generateProject` — not from either entry point — so CLI and interactive runs both see it. It is still marked "(deprecated)" in `--help` and the interactive prompt. Do not add features to the FastMCP template; the next step is deleting it.
 
 Uses [FastMCP](https://github.com/punkpeye/fastmcp), a TypeScript framework built on top of the official SDK that provides a simpler, more intuitive API.
 

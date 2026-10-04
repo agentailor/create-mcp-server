@@ -45,7 +45,7 @@ export function parseArguments(): ParseResult {
         .default('npm')
     )
     .addOption(
-      new Option('-f, --framework <framework>', 'Framework to use')
+      new Option('-f, --framework <framework>', 'Framework to use (fastmcp is deprecated)')
         .choices(['sdk', 'fastmcp'])
         .default('sdk')
     )
