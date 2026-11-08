@@ -211,6 +211,17 @@ writes nothing — so check the files landed rather than trusting the exit code.
 `.agents/` is deliberately **not** in the generated `.gitignore`: the skill is
 meant to be committed so the whole team gets the same copy.
 
+### When the skill is absent
+
+The generated README and `AGENTS.md` both have a skill section, and it must
+describe what is on disk. `project-generator.ts` therefore copies the skill
+**before** rendering any template and passes `withSkills: skillCopied` — the
+copy's actual outcome, not the flag, so a failed copy is covered too. Without
+the skill, both docs link upstream (`SKILL_URL`) and give `SKILLS_ADD_COMMAND`
+instead of pointing at `.agents/`. That command omits `-a universal` on purpose:
+whoever opted out gets to pick the agent. The README section lives in
+`src/templates/common/skill-readme.ts`, shared by both transports.
+
 ## Examples
 
 `examples/` holds complete servers built with the CLI, one folder per example, indexed in `examples/README.md`. They are not part of the published package (`files` is `dist` only) and the root `lint`, `format`, `tsc` and `test` scripts do not touch them.

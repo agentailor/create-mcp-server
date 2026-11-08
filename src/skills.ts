@@ -32,6 +32,17 @@ export const SKILLS_UPDATE_COMMAND = 'npx skills update -p -y';
  */
 export const SKILLS_INSTALL_HINT = `npx skills add ${SKILL_REPO} --skill ${SKILL_NAME} -a universal`;
 
+/** Where the skill lives upstream, for projects scaffolded without it. */
+export const SKILL_URL = `https://github.com/${SKILL_REPO}/tree/main/${SKILL_NAME}`;
+
+/**
+ * Offered to projects scaffolded with `--no-skills`.
+ *
+ * No `-a universal` here: whoever opted out of the vendored copy gets to pick
+ * which agent the skills CLI installs for.
+ */
+export const SKILLS_ADD_COMMAND = `npx skills add ${SKILL_REPO} --skill ${SKILL_NAME}`;
+
 /**
  * The vendored skill, copied verbatim from `agentailor/skills`.
  *

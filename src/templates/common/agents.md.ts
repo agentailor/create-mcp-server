@@ -1,5 +1,11 @@
 import type { CommonTemplateOptions } from './types.js';
-import { SKILLS_UPDATE_COMMAND, SKILLS_INSTALL_HINT, SKILLS_DIR } from '../../skills.js';
+import {
+  SKILLS_UPDATE_COMMAND,
+  SKILLS_INSTALL_HINT,
+  SKILLS_DIR,
+  SKILLS_ADD_COMMAND,
+  SKILL_URL,
+} from '../../skills.js';
 
 /**
  * AGENTS.md for the generated project.
@@ -12,6 +18,7 @@ export function getAgentsMdTemplate(projectName: string, options?: CommonTemplat
   const transport = options?.transport ?? 'http';
   const withOAuth = options?.withOAuth ?? false;
   const packageManager = options?.packageManager ?? 'npm';
+  const withSkills = options?.withSkills ?? true;
 
   const isStdio = transport === 'stdio';
 
@@ -152,7 +159,8 @@ root, and domain logic stays free of MCP imports so it remains testable on its
 own.
 `;
 
-  const skillSection = `
+  const skillSection = withSkills
+    ? `
 ## The tool-design skill
 
 \`${SKILLS_DIR}/skills/tool-design/SKILL.md\` is the long form of the guidance above,
@@ -172,6 +180,17 @@ That is yours to run, not something this project does for you. If the directory
 is missing entirely, add it with \`${SKILLS_INSTALL_HINT}\`.
 
 Commit \`${SKILLS_DIR}/\` so everyone working on this project gets the same copy.
+`
+    : `
+## The tool-design skill
+
+The guidance above is the short form of Agentailor's
+[tool-design](${SKILL_URL}) skill, which has the long form with worked
+examples. It is not installed in this project. To add it:
+
+\`\`\`bash
+${SKILLS_ADD_COMMAND}
+\`\`\`
 `;
 
   const conventions = `

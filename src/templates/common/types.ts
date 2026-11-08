@@ -6,6 +6,11 @@ export type TransportType = 'http' | 'stdio';
  */
 export interface BaseTemplateOptions {
   packageManager?: PackageManager;
+  /**
+   * Whether the tool-design skill is present in the project. Defaults to true.
+   * The generator sets it from the copy's actual outcome, not just the flag.
+   */
+  withSkills?: boolean;
 }
 
 /**

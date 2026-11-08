@@ -49,17 +49,33 @@ export interface ProjectConfig {
 export async function generateProject(config: ProjectConfig): Promise<void> {
   const { projectName, packageManager, transport, withOAuth, withGitInit, withSkills } = config;
 
-  const templateOptions: CommonTemplateOptions = {
-    withOAuth: transport === 'http' ? withOAuth : false,
-    packageManager,
-    transport,
-  };
-
   const projectPath = join(process.cwd(), projectName);
   const srcPath = join(projectPath, 'src');
 
   // Create directories
   await mkdir(srcPath, { recursive: true });
+
+  // The skill is vendored, so this is a file copy. It never fails the scaffold:
+  // the project is complete without it. It runs before the templates so the
+  // README and AGENTS.md describe what is actually on disk — a project without
+  // the skill must not point at a directory that does not exist.
+  let skillCopied = false;
+  if (withSkills) {
+    const result = await copySkill(projectPath);
+    skillCopied = result.copied;
+
+    if (!result.copied) {
+      console.log(`\n  Could not add the tool-design skill (${result.reason}).`);
+      console.log(`  To add it by hand: ${SKILLS_INSTALL_HINT}`);
+    }
+  }
+
+  const templateOptions: CommonTemplateOptions = {
+    withOAuth: transport === 'http' ? withOAuth : false,
+    packageManager,
+    transport,
+    withSkills: skillCopied,
+  };
 
   // Build list of files to write
   const filesToWrite: Promise<void>[] = [];
@@ -129,19 +145,6 @@ export async function generateProject(config: ProjectConfig): Promise<void> {
       execSync('git init', { cwd: projectPath, stdio: 'ignore' });
     } catch {
       console.log('\n  Could not initialize git repository (is git installed?)');
-    }
-  }
-
-  // The skill is vendored, so this is a file copy. It never fails the scaffold:
-  // the project is complete without it.
-  let skillCopied = false;
-  if (withSkills) {
-    const result = await copySkill(projectPath);
-    skillCopied = result.copied;
-
-    if (!result.copied) {
-      console.log(`\n  Could not add the tool-design skill (${result.reason}).`);
-      console.log(`  To add it by hand: ${SKILLS_INSTALL_HINT}`);
     }
   }
 
