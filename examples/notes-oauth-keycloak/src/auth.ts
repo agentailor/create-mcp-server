@@ -37,6 +37,7 @@ interface OAuthJWTPayload extends JWTPayload {
   scope?: string;
   azp?: string;
   client_id?: string;
+  preferred_username?: string;
 }
 
 // OIDC Discovery document structure (partial)
@@ -85,6 +86,9 @@ const tokenVerifier: OAuthTokenVerifier = {
         clientId: jwtPayload.azp || jwtPayload.client_id || jwtPayload.sub || 'unknown',
         scopes: jwtPayload.scope ? jwtPayload.scope.split(' ') : [],
         expiresAt: jwtPayload.exp,
+        // example: clientId identifies the app (VS Code, Cursor), not the person.
+        // Carry the user's identity too, so tools can scope data per user.
+        extra: { sub: jwtPayload.sub, username: jwtPayload.preferred_username },
       };
     } catch (error) {
       if (error instanceof Error) {
@@ -113,7 +117,7 @@ export function setupAuthMetadataRouter(app: Express): void {
       oauthMetadata,
       resourceServerUrl: mcpServerUrl,
       scopesSupported: ['mcp:tools'],
-      resourceName: 'MCP Server',
+      resourceName: 'Notes MCP Server (example)',
     })
   );
 }
@@ -123,7 +127,8 @@ export function setupAuthMetadataRouter(app: Express): void {
 // toNodeHandler forwards to MCP handlers as `ctx.http.authInfo`.
 export const authMiddleware: RequestHandler = requireBearerAuth({
   verifier: tokenVerifier,
-  requiredScopes: [],
+  // example: reject tokens that lack the scope this server advertises.
+  requiredScopes: ['mcp:tools'],
   resourceMetadataUrl: getOAuthProtectedResourceMetadataUrl(mcpServerUrl),
 });
 

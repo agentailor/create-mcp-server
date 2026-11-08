@@ -139,6 +139,12 @@ to the protocol over stdio).
 - `npm test` — run the test suite
 - `npm run inspect` — open MCP Inspector (update URL in `package.json` if needed)
 
+## Examples
+
+Complete servers built with the CLI, each runnable on its own:
+
+- [notes-oauth-keycloak](examples/notes-oauth-keycloak/): `--oauth` end to end, with a local Keycloak (realm already set up) via Docker Compose and notes kept per user.
+
 ## Learning Resources
 
 | Guide | Description |

@@ -1,6 +1,7 @@
 import type { CallToolResult, McpServer } from '@modelcontextprotocol/server';
 import { z } from 'zod';
 import * as notes from './notes-store.js';
+import { callerFrom } from './identity.js';
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
@@ -15,7 +16,7 @@ export function registerTools(server: McpServer): void {
     'list_notes',
     {
       description:
-        'List saved notes, newest first, optionally filtered by tag. Use this to ' +
+        'List your saved notes, newest first, optionally filtered by tag. Use this to ' +
         'find a note before reading or referencing it - for example "what notes do ' +
         'I have?" or "show me my notes tagged release". Returns a page of notes ' +
         'plus the total number that matched, so a truncated result is explicit.',
@@ -39,18 +40,19 @@ export function registerTools(server: McpServer): void {
           ),
       }),
     },
-    async ({ tag, limit }): Promise<CallToolResult> => {
+    async ({ tag, limit }, ctx): Promise<CallToolResult> => {
+      const { owner } = callerFrom(ctx);
       const effectiveLimit = limit ?? DEFAULT_LIMIT;
 
       let result;
       try {
-        result = notes.list({ tag, limit: effectiveLimit });
+        result = notes.list(owner, { tag, limit: effectiveLimit });
       } catch (error) {
         if (error instanceof notes.UnknownTagError) {
           // An unknown tag and a tag with no notes both produce an empty list.
           // Saying which one happened stops the agent reporting "you have no
           // notes" when the truth is "that tag does not exist".
-          const available = notes.knownTags();
+          const available = notes.knownTags(owner);
           return toolError(
             `No tag "${error.tag}" exists, so no notes could match. ` +
               (available.length > 0
@@ -85,7 +87,7 @@ export function registerTools(server: McpServer): void {
     'get_note',
     {
       description:
-        'Read one note in full by its id. Use this after list_notes has given ' +
+        'Read one of your notes in full by its id. Use this after list_notes has given ' +
         'you an id. Returns the note including its body and tags.',
       inputSchema: z.object({
         id: z
@@ -96,8 +98,8 @@ export function registerTools(server: McpServer): void {
           ),
       }),
     },
-    async ({ id }): Promise<CallToolResult> => {
-      const note = notes.get(id);
+    async ({ id }, ctx): Promise<CallToolResult> => {
+      const note = notes.get(callerFrom(ctx).owner, id);
 
       if (!note) {
         return toolError(
@@ -114,7 +116,7 @@ export function registerTools(server: McpServer): void {
     'create_note',
     {
       description:
-        'Save a new note and return it, including the id assigned to it. Use ' +
+        'Save a new note to your account and return it, including the id assigned to it. Use ' +
         'the returned id to read the note back with get_note - no lookup needed.',
       inputSchema: z.object({
         title: z
@@ -133,9 +135,9 @@ export function registerTools(server: McpServer): void {
           ),
       }),
     },
-    async ({ title, body, tags }): Promise<CallToolResult> => {
+    async ({ title, body, tags }, ctx): Promise<CallToolResult> => {
       try {
-        return toolJson(notes.create({ title, body, tags }));
+        return toolJson(notes.create(callerFrom(ctx).owner, { title, body, tags }));
       } catch (error) {
         if (error instanceof RangeError) {
           return toolError(
@@ -145,6 +147,28 @@ export function registerTools(server: McpServer): void {
         }
         throw error;
       }
+    }
+  );
+
+  // example: added. Shows the identity the server derived from the token, which
+  // is the quickest way to confirm the OAuth chain end to end.
+  server.registerTool(
+    'whoami',
+    {
+      description:
+        'Show which user and OAuth client this session is signed in as, and the ' +
+        'granted scopes. Use this to check who owns the notes you see, for example ' +
+        '"which account am I using?". Takes no arguments.',
+      inputSchema: z.object({}),
+    },
+    async (_args, ctx): Promise<CallToolResult> => {
+      const caller = callerFrom(ctx);
+      return toolJson({
+        user: caller.username ?? null,
+        userId: caller.owner,
+        client: caller.clientId ?? null,
+        scopes: caller.scopes,
+      });
     }
   );
 }

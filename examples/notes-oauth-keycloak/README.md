@@ -1,196 +1,143 @@
 # notes-oauth-keycloak
 
-A streamable HTTP MCP (Model Context Protocol) server with OAuth authentication, built on the official MCP TypeScript SDK v2.
+A notes MCP server protected by OAuth, with a local Keycloak that is already configured. Each signed-in user gets their own notes.
 
-## About
+It starts as the plain output of `create-mcp-server --oauth`, plus a small set of changes listed in [What changed after scaffolding](#what-changed-after-scaffolding). Follow the steps below and you have a working OAuth-protected MCP server in a few minutes, with no Keycloak console clicks.
 
-This project was created with [@agentailor/create-mcp-server](https://www.npmjs.com/package/@agentailor/create-mcp-server).
+## What you need
 
-The server is built on `createMcpHandler`, which runs the server factory once per request — a fresh `McpServer` serves every call, so the server is stateless and scales horizontally without sticky sessions.
+- Node.js 22.19 or later
+- Docker with Compose
 
-It serves MCP protocol revision **2026-07-28** and also accepts 2025-era clients through the same per-request path.
-
-## Getting Started
+## Run it
 
 ```bash
-# Install dependencies
+docker compose up -d --wait     # Keycloak on :8080, realm imported
+cp .env.example .env
 npm install
-
-# Build and run in development
-npm run dev
-
-# Or build and start separately
-npm run build
-npm start
+npm run dev                     # MCP server on :3000
 ```
 
-The server will start on port 3000 by default. You can change this by setting the `PORT` environment variable. To allow additional hosts (e.g. when deploying behind a reverse proxy), set `ALLOWED_HOSTS` as a comma-separated list.
-
-## Testing with MCP Inspector
-
-This project includes [MCP Inspector](https://github.com/modelcontextprotocol/inspector) as a dev dependency for testing and debugging.
-
-First, start the server in one terminal:
+Then, in a second terminal:
 
 ```bash
-npm run dev
+npm run smoke
 ```
 
-Then, in another terminal, launch the inspector:
+`smoke` checks the whole chain: the server rejects missing and forged tokens with `401`, Alice's identity reaches the tools, and Bob cannot see Alice's notes. If it ends with `All checks passed.`, everything is wired up.
+
+`docker compose down` throws Keycloak's state away. The next `up` imports the realm again from scratch.
+
+## Demo accounts
+
+| What           | Username | Password |
+| -------------- | -------- | -------- |
+| Demo user      | `alice`  | `alice`  |
+| Demo user      | `bob`    | `bob`    |
+| Keycloak admin | `admin`  | `admin`  |
+
+The Keycloak admin console is at http://localhost:8080/admin. All of these exist for local development only.
+
+## Connect a client
+
+The server lives at `http://localhost:3000/mcp`. When you connect, the client finds Keycloak through the server's `401` response, opens a browser so you can sign in as `alice` or `bob`, and then calls the tools with that token. Ask it to run `whoami` to confirm who you are signed in as.
+
+**MCP Inspector**
 
 ```bash
 npm run inspect
 ```
 
-## OAuth Authentication
+The Inspector registers itself with Keycloak automatically (Dynamic Client Registration).
 
-This server uses OAuth 2.0 with JWT tokens for authentication. It works with any OIDC-compliant provider including:
-- Auth0
-- Keycloak
-- Azure AD / Entra ID
-- Okta
-- And more...
+**VS Code** (`.vscode/mcp.json`)
 
-### Environment Variables
+```json
+{
+  "servers": {
+    "notes": { "type": "http", "url": "http://localhost:3000/mcp" }
+  }
+}
+```
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `OAUTH_ISSUER_URL` | Base URL of your OAuth provider | `https://your-tenant.auth0.com` |
-| `OAUTH_AUDIENCE` | API identifier / audience claim (optional) | `https://your-api.com` |
+**Cursor**
 
-### Provider-Specific Issuer URLs
+```json
+{
+  "mcpServers": {
+    "notes": {
+      "url": "http://localhost:3000/mcp",
+      "auth": { "CLIENT_ID": "mcp-server-client", "scopes": ["mcp:tools"] }
+    }
+  }
+}
+```
 
-| Provider | Issuer URL Format |
-|----------|-------------------|
-| Auth0 | `https://{tenant}.auth0.com` |
-| Keycloak | `http://{host}:{port}/realms/{realm}` |
-| Azure AD | `https://login.microsoftonline.com/{tenant}/v2.0` |
-| Okta | `https://{domain}.okta.com/oauth2/default` |
+`mcp-server-client` is a public client, so Cursor needs no secret.
 
-### How It Works
-
-1. The server fetches public keys from `{OAUTH_ISSUER_URL}/.well-known/jwks.json`
-2. Incoming JWT tokens are verified locally using these keys
-3. The token's `iss` (issuer) and optionally `aud` (audience) claims are validated
-4. The validated token is attached to `req.auth` and surfaced to MCP handlers as `ctx.http.authInfo`
-
-### Protected Resource Metadata
-
-- **GET /.well-known/oauth-protected-resource** - OAuth protected resource metadata
-
-### Token Requirements
-
-- All MCP endpoints require a valid JWT Bearer token in the `Authorization` header
-- Tokens must be signed by the configured OAuth provider
-- If `OAUTH_AUDIENCE` is set, the token's `aud` claim must match
-
-## API Endpoints
-
-- **/mcp** - Main MCP endpoint. The SDK handler owns method dispatch, so the route is mounted with `app.all`.
-  - Requires valid Bearer token in Authorization header
-- **GET /health** - Health check endpoint (returns 200 OK)
-
-## Included Examples
-
-A small notes server, included as a worked example of tools an agent can use
-well. Notes are held in memory, so they last until the process restarts.
-
-### Tools
-
-- **list_notes** - List notes, newest first, optionally filtered by tag.
-  - `tag` (optional): Only return notes carrying this tag
-  - `limit` (optional): Maximum to return, 1-100, defaults to 20
-
-  Returns the page plus `matched`, `returned` and `truncated`, so a capped
-  result says so and suggests how to narrow it. An unknown tag is reported as
-  an error listing the tags that do exist, rather than as an empty list.
-
-- **get_note** - Read one note in full by its id.
-  - `id`: Note id as returned by `list_notes` or `create_note`
-
-- **create_note** - Save a note and return it, including its new id.
-  - `title`: Non-empty, at most 120 characters
-  - `body`: Plain text
-  - `tags` (optional): Tags used to filter in `list_notes`
-
-### Resources
-
-- **notes://{id}** - A single note as JSON. Listing the resource enumerates
-  the saved notes.
-
-### Prompts
-
-- **summarize-notes** - Summarize the notes carrying a given tag
-
-## Tests
+**curl**
 
 ```bash
-npm test
+TOKEN=$(npm run --silent token)          # alice; use `npm run --silent token -- bob` for bob
+curl -i -X POST http://localhost:3000/mcp \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
 ```
 
-Two layers: `src/notes-store.test.ts` covers the data layer on its own, and
-`src/server.test.ts` drives a real MCP client over an in-memory transport and
-asserts on the payload a tool actually returns.
+## What is in the realm
 
-These are a worked example, not a quota. Each one pins something a tool's
-description promises but nothing else checks - that a truncated list says so,
-that an error names a next step, that an unknown filter is distinguishable from
-an empty result. When you add a tool, one test in that spirit is enough.
+[`keycloak/mcp-realm-realm.json`](keycloak/mcp-realm-realm.json) is imported on startup. It holds the configuration that the blog guide walks through in the Keycloak console:
 
-## Project Structure
+| Item                       | Why it is there                                                                                                                                                                  |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Realm `mcp-realm`          | Issuer is `http://localhost:8080/realms/mcp-realm`.                                                                                                                              |
+| Client scope `mcp:tools`   | A realm default scope with "Include in token scope" on. The server requires it (`requiredScopes` in `src/auth.ts`).                                                              |
+| Client `mcp-server-client` | Public client with PKCE, for clients that use a preset client ID (such as Cursor). Its redirect URIs cover VS Code, Cursor and loopback.                                         |
+| Client `mcp-dev-cli`       | Allows the password grant only. `npm run token` and `npm run smoke` use it to get a token without a browser. **Never put this on a real deployment.**                            |
+| Trusted Hosts policy       | Lets clients register themselves (Dynamic Client Registration) from your machine. Includes `172.29.248.1`, the Docker network gateway; see the comment in `docker-compose.yml`. |
+| Users `alice`, `bob`       | Two users, so you can see that notes are kept per user. Both are given `default-roles-mcp-realm` explicitly, because users imported from a file get no roles otherwise. |
+| `offline_access` mapping   | Links the `offline_access` scope to the `offline_access` role. Self-registered clients (Inspector) have full scope disabled and ask for refresh tokens; without this link the token exchange fails with "Offline tokens not allowed". |
 
-```
-notes-oauth-keycloak/
-├── src/
-│   ├── server.ts        # Creates the McpServer and registers the primitives
-│   ├── tools.ts         # Tool definitions
-│   ├── prompts.ts       # Prompt definitions
-│   ├── resources.ts     # Resource definitions
-│   ├── notes-store.ts   # Example data layer, no MCP imports
-│   ├── index.ts         # Express app and MCP HTTP handler setup
-│   └── auth.ts          # OAuth configuration and middleware
-├── Dockerfile        # Multi-stage Docker build
-├── package.json
-├── tsconfig.json
-└── README.md
-```
+The file name has to be `<realm>-realm.json`, or Keycloak refuses to import it.
 
-## Deployment
+## What changed after scaffolding
 
-### Docker
-
-Build and run the Docker container:
+The first commit that added this folder is the unmodified output of:
 
 ```bash
-docker build -t notes-oauth-keycloak .
-docker run -p 3000:3000 notes-oauth-keycloak
+npx @agentailor/create-mcp-server@0.11.0 --name=notes-oauth-keycloak --oauth --no-git --no-skills
 ```
 
-## Customization
+Each change made after that is marked in the code with an `// example:` comment:
 
-- Add tools in `src/tools.ts`, prompts in `src/prompts.ts`, resources in
-  `src/resources.ts`. `src/server.ts` only wires them together.
-- Replace the example's data layer in `src/notes-store.ts`. Keep it free of MCP
-  imports so it stays testable on its own, and keep its state at module scope:
-  the server factory runs once per request, so anything held on the server
-  instance is discarded between calls.
-- Modify the HTTP handler and Express configuration in `src/index.ts`
-- Configure OAuth scopes and token verification in `src/auth.ts`
+| File                                                          | Change                                                                                                          |
+| ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `src/auth.ts`                                                 | Puts the token's `sub` and `preferred_username` into `AuthInfo.extra`, and requires the `mcp:tools` scope.      |
+| `src/identity.ts` (new)                                       | `callerFrom(ctx)` reads `ctx.http.authInfo` and returns the caller. On stdio and in tests, the owner is `local`. |
+| `src/notes-store.ts`                                          | Each function takes an `owner`, and notes are partitioned by it.                                                |
+| `src/tools.ts`, `src/resources.ts`                            | Pass the caller's owner into the store. Adds a `whoami` tool.                                                   |
+| `scripts/`, `docker-compose.yml`, `keycloak/`, `.env.example` | Local Keycloak, the token helper and the smoke test.                                                            |
 
-## Tool design skill
+### Why notes are keyed by `sub`, not `clientId`
 
-Agentailor's [tool-design](https://github.com/agentailor/skills) skill is
-included at `.agents/skills/tool-design/`, so a coding agent working here has
-the guidance on hand. Commit it so the whole team gets the same copy.
+`clientId` identifies the app (VS Code, Cursor), not the person using it. Two people signing in through VS Code get the same `clientId`, so keying by it would give them one shared set of notes. `sub` is the user's stable ID in Keycloak. That is why `auth.ts` has to forward it explicitly: the generated verifier only fills in `clientId` and `scopes`.
 
-It is the version that shipped with the scaffolding CLI. To check for a newer
-one — your call, not automatic:
+## Troubleshooting
 
-```bash
-npx skills update -p -y
-```
+- **Port 8080 is taken.** Run `KEYCLOAK_PORT=18080 docker compose up -d --wait`, and set `OAUTH_ISSUER_URL=http://localhost:18080/realms/mcp-realm` in `.env`. The issuer has to match the port exactly, because it is part of every token.
+- **Port 3000 is taken.** Set `PORT` in `.env`. `npm run inspect` always connects to port 3000, so pass the URL to the Inspector yourself.
+- **`403` / `Host not trusted` when a client registers itself.** Your Docker setup reaches Keycloak from a different address. Find it in `docker compose logs keycloak` (`Failed to verify remote host : <ip>`) and add it under Clients, Client registration, Trusted Hosts.
+- **Keycloak shows "Client not found" instead of the sign-in page.** Restarting Keycloak (`docker compose down` / `up`) deletes every client that registered itself, but the MCP client still has the old client ID saved and keeps using it. The Inspector saves it on disk, not in the browser, so a private window does not help: delete `~/.mcp-inspector/storage/oauth.json` (it only holds the Inspector's saved sign-ins) and connect again. Other clients have their own equivalent, such as signing out of the server in VS Code.
+- **`401` with a valid-looking token.** The reason is in the server log as `[auth] JWT verification failed: <reason>`. The most common cause is an issuer mismatch: the token was issued at a different URL (host or port) than `OAUTH_ISSUER_URL`.
 
-## Learn More
+## Not for production
 
-- [Model Context Protocol](https://modelcontextprotocol.io/)
-- [MCP TypeScript SDK v2](https://ts.sdk.modelcontextprotocol.io/v2/)
+This setup is tuned for running locally: Keycloak in dev mode with in-memory storage, HTTP everywhere, default admin credentials, a password-grant client, and notes kept in memory. Before deploying, use HTTPS, a persistent Keycloak database, a real data store keyed by `sub`, and an audience (`OAUTH_AUDIENCE`) so that tokens issued for other apps are rejected.
+
+## Learn more
+
+- [Securing MCP Servers: A Practical Guide with Keycloak](https://blog.agentailor.com/posts/oauth-for-mcp-servers-practical-guide-keycloak): the concepts, and the console steps this realm file replaces
+- [Securing an MCP v2 Server with OAuth and Keycloak](https://blog.agentailor.com/posts/mcp-v2-oauth-keycloak): what changed in the v2 SDK
+- [OAuth setup guide](../../docs/oauth-setup.md): how the generated `auth.ts` validates tokens

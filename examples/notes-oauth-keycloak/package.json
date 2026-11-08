@@ -9,7 +9,9 @@
     "start": "node dist/index.js",
     "test": "vitest run",
     "test:watch": "vitest",
-    "inspect": "mcp-inspector http://localhost:3000/mcp"
+    "inspect": "mcp-inspector http://localhost:3000/mcp",
+    "token": "node scripts/get-token.mjs",
+    "smoke": "node scripts/smoke.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/server": "^2.3.0",

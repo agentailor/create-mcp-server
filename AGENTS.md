@@ -55,6 +55,8 @@ create-mcp-server/
 ├── dist/                           # Compiled output (generated)
 ├── docs/
 │   └── oauth-setup.md              # OAuth setup guide for various providers
+├── examples/                       # Runnable, end-to-end servers built with the CLI
+│   └── notes-oauth-keycloak/       # --oauth + Keycloak via docker compose, per-user notes
 ├── official-examples/              # Reference MCP server examples
 ├── package.json
 ├── tsconfig.json
@@ -208,6 +210,15 @@ writes nothing — so check the files landed rather than trusting the exit code.
 
 `.agents/` is deliberately **not** in the generated `.gitignore`: the skill is
 meant to be committed so the whole team gets the same copy.
+
+## Examples
+
+`examples/` holds complete servers built with the CLI, one folder per example, indexed in `examples/README.md`. They are not part of the published package (`files` is `dist` only) and the root `lint`, `format`, `tsc` and `test` scripts do not touch them.
+
+- **Start from unmodified CLI output.** Scaffold with a pinned CLI version, commit that output as-is, then add the example's changes in later commits. Mark each change in code with an `// example:` comment and list it in the example's README, so readers can see what the CLI gives them and what they add themselves.
+- **Each example runs on its own.** Its own `package.json`, lockfile, tests and README. Anything external it needs (Keycloak, a database) comes from a `docker-compose.yml` in the example, set up from files, never from manual console steps.
+- **CI runs them end to end.** `.github/workflows/examples.yml` runs on changes to `examples/**` and `src/templates/**`, so a template change that breaks an example fails on the same PR. When that happens, update the example to match the template (or re-scaffold) rather than letting it pin old behavior.
+- **notes-oauth-keycloak:** the realm file must be named `<realm>-realm.json` or Keycloak refuses the import. The compose network has a fixed subnet because host requests reach Keycloak from the bridge gateway, which the realm's Trusted Hosts registration policy must list.
 
 ## Publishing
 

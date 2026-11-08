@@ -1,6 +1,7 @@
 import type { McpServer, ReadResourceResult } from '@modelcontextprotocol/server';
 import { ResourceTemplate } from '@modelcontextprotocol/server';
 import * as notes from './notes-store.js';
+import { callerFrom } from './identity.js';
 
 const MAX_LISTED = 100;
 
@@ -11,8 +12,8 @@ export function registerResources(server: McpServer): void {
     // omitting it fails to compile. Implementing it also lets clients enumerate
     // the notes instead of only reading one by id.
     new ResourceTemplate('notes://{id}', {
-      list: async () => ({
-        resources: notes.list({ limit: MAX_LISTED }).rows.map((note) => ({
+      list: async (ctx) => ({
+        resources: notes.list(callerFrom(ctx).owner, { limit: MAX_LISTED }).rows.map((note) => ({
           uri: `notes://${note.id}`,
           name: note.title,
           mimeType: 'application/json',
@@ -24,9 +25,9 @@ export function registerResources(server: McpServer): void {
       description: 'A single saved note, addressed by its id.',
       mimeType: 'application/json',
     },
-    async (uri, variables): Promise<ReadResourceResult> => {
+    async (uri, variables, ctx): Promise<ReadResourceResult> => {
       const id = String(variables.id);
-      const note = notes.get(id);
+      const note = notes.get(callerFrom(ctx).owner, id);
 
       if (!note) {
         throw new Error(`No note has id "${id}"`);

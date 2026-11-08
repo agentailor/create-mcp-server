@@ -7,6 +7,10 @@
 //
 // Replace this with your own data layer. Keep the seam: tools stay thin, the
 // logic stays testable without a transport.
+//
+// example: every function takes an `owner` (the signed-in user's id), and each
+// owner only ever sees their own notes. The store does not know about OAuth;
+// it just partitions by a string the tools hand it.
 
 export interface Note {
   id: string;
@@ -32,7 +36,16 @@ export class UnknownTagError extends Error {
 
 export const MAX_TITLE_LENGTH = 120;
 
-const notes = new Map<string, Note>();
+const notesByOwner = new Map<string, Map<string, Note>>();
+
+function notesOf(owner: string): Map<string, Note> {
+  let notes = notesByOwner.get(owner);
+  if (!notes) {
+    notes = new Map();
+    notesByOwner.set(owner, notes);
+  }
+  return notes;
+}
 
 let counter = 0;
 
@@ -42,9 +55,9 @@ function nextId(): string {
 }
 
 /** Every tag currently in use, so callers can tell a typo from an empty result. */
-export function knownTags(): string[] {
+export function knownTags(owner: string): string[] {
   const tags = new Set<string>();
-  for (const note of notes.values()) {
+  for (const note of notesOf(owner).values()) {
     for (const tag of note.tags) tags.add(tag);
   }
   return [...tags].sort();
@@ -56,25 +69,28 @@ export function knownTags(): string[] {
  * `total` is the number of matches, not the number returned - the caller needs
  * both to tell the agent honestly that a result was truncated.
  */
-export function list(options: { tag?: string; limit: number }): ListResult {
+export function list(owner: string, options: { tag?: string; limit: number }): ListResult {
   const { tag, limit } = options;
 
-  if (tag !== undefined && !knownTags().includes(tag)) {
+  if (tag !== undefined && !knownTags(owner).includes(tag)) {
     throw new UnknownTagError(tag);
   }
 
-  const matches = [...notes.values()]
+  const matches = [...notesOf(owner).values()]
     .filter((note) => tag === undefined || note.tags.includes(tag))
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
   return { rows: matches.slice(0, limit), total: matches.length };
 }
 
-export function get(id: string): Note | undefined {
-  return notes.get(id);
+export function get(owner: string, id: string): Note | undefined {
+  return notesOf(owner).get(id);
 }
 
-export function create(input: { title: string; body: string; tags?: string[] }): Note {
+export function create(
+  owner: string,
+  input: { title: string; body: string; tags?: string[] }
+): Note {
   const title = input.title.trim();
 
   if (title.length === 0) {
@@ -92,13 +108,13 @@ export function create(input: { title: string; body: string; tags?: string[] }):
     createdAt: new Date().toISOString(),
   };
 
-  notes.set(note.id, note);
+  notesOf(owner).set(note.id, note);
   return note;
 }
 
-/** Test helper: replaces all notes. Not part of the tool surface. */
-export function seedForTests(seed: Note[]): void {
-  notes.clear();
+/** Test helper: clears every owner's notes, then seeds one owner. */
+export function seedForTests(seed: Note[], owner = 'local'): void {
+  notesByOwner.clear();
   counter = 0;
-  for (const note of seed) notes.set(note.id, note);
+  for (const note of seed) notesOf(owner).set(note.id, note);
 }
