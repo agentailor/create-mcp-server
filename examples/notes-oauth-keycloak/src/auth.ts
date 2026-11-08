@@ -1,0 +1,213 @@
+import { config } from 'dotenv';
+import { createRemoteJWKSet, jwtVerify, type JWTPayload, type JWTVerifyGetKey } from 'jose';
+import {
+  mcpAuthMetadataRouter,
+  getOAuthProtectedResourceMetadataUrl,
+  requireBearerAuth,
+} from '@modelcontextprotocol/express';
+import { OAuthError, OAuthErrorCode } from '@modelcontextprotocol/server';
+import type { OAuthMetadata, OAuthTokenVerifier } from '@modelcontextprotocol/server';
+import type { Express, RequestHandler } from 'express';
+
+// Imports are hoisted, so this runs before index.ts's own config() call - load
+// the env here too, or CONFIG below reads empty values.
+config({ quiet: true });
+
+// OAuth configuration from environment variables
+const CONFIG = {
+  host: process.env.HOST || 'localhost',
+  port: Number(process.env.PORT) || 3000,
+  oauth: {
+    issuerUrl: process.env.OAUTH_ISSUER_URL || 'http://localhost:8080',
+    audience: process.env.OAUTH_AUDIENCE || '',
+  },
+};
+
+// Ensure issuer URL doesn't have trailing slash for consistency
+const normalizedIssuerUrl = CONFIG.oauth.issuerUrl.replace(/\/$/, '');
+
+const mcpServerUrl = new URL(`http://${CONFIG.host}:${CONFIG.port}`);
+
+// OAuth metadata and JWKS fetched from OIDC discovery endpoint at startup
+let oauthMetadata: OAuthMetadata | null = null;
+let JWKS: JWTVerifyGetKey | null = null;
+
+// Extended JWT payload type with common OAuth claims
+interface OAuthJWTPayload extends JWTPayload {
+  scope?: string;
+  azp?: string;
+  client_id?: string;
+}
+
+// OIDC Discovery document structure (partial)
+interface OIDCDiscoveryDocument {
+  issuer: string;
+  authorization_endpoint: string;
+  token_endpoint: string;
+  jwks_uri: string;
+  response_types_supported?: string[];
+}
+
+// Token verifier using JWKS/JWT validation
+const tokenVerifier: OAuthTokenVerifier = {
+  verifyAccessToken: async (token: string) => {
+    // A plain Error here is intentional: an uninitialized JWKS is a server
+    // misconfiguration, not a bad token, so it should surface as 500 server_error.
+    if (!JWKS) {
+      throw new Error('JWKS not initialized. Call validateOAuthConfig() first.');
+    }
+
+    try {
+      // Check if the token looks like a JWT (three base64url-encoded parts separated by dots)
+      const parts = token.split('.');
+      if (parts.length !== 3) {
+        throw new OAuthError(
+          OAuthErrorCode.InvalidToken,
+          'Token is not a valid JWT format (expected 3 parts separated by dots).'
+        );
+      }
+
+      const verifyOptions: { issuer: string; audience?: string } = {
+        issuer: normalizedIssuerUrl,
+      };
+
+      // Only validate audience if configured
+      if (CONFIG.oauth.audience) {
+        verifyOptions.audience = CONFIG.oauth.audience;
+      }
+
+      const { payload } = await jwtVerify(token, JWKS, verifyOptions);
+      const jwtPayload = payload as OAuthJWTPayload;
+
+      return {
+        token,
+        // Use azp (authorized party), client_id, or sub as the client identifier
+        clientId: jwtPayload.azp || jwtPayload.client_id || jwtPayload.sub || 'unknown',
+        scopes: jwtPayload.scope ? jwtPayload.scope.split(' ') : [],
+        expiresAt: jwtPayload.exp,
+      };
+    } catch (error) {
+      if (error instanceof Error) {
+        console.error('[auth] JWT verification failed:', error.message);
+      }
+      if (error instanceof OAuthError) {
+        throw error;
+      }
+      // Convert jose failures (bad signature, expired, wrong issuer/audience) into
+      // an OAuthError so requireBearerAuth answers 401 with a WWW-Authenticate
+      // challenge instead of 500. The specific reason stays in the server log
+      // rather than the response body, so callers learn nothing beyond "invalid".
+      throw new OAuthError(OAuthErrorCode.InvalidToken, 'Token verification failed');
+    }
+  },
+};
+
+// Setup OAuth metadata router on the Express app
+// Must be called AFTER validateOAuthConfig() to ensure oauthMetadata is populated
+export function setupAuthMetadataRouter(app: Express): void {
+  if (!oauthMetadata) {
+    throw new Error('OAuth metadata not initialized. Call validateOAuthConfig() first.');
+  }
+  app.use(
+    mcpAuthMetadataRouter({
+      oauthMetadata,
+      resourceServerUrl: mcpServerUrl,
+      scopesSupported: ['mcp:tools'],
+      resourceName: 'MCP Server',
+    })
+  );
+}
+
+// Export auth middleware for protecting routes.
+// requireBearerAuth attaches the validated AuthInfo to `req.auth`, which
+// toNodeHandler forwards to MCP handlers as `ctx.http.authInfo`.
+export const authMiddleware: RequestHandler = requireBearerAuth({
+  verifier: tokenVerifier,
+  requiredScopes: [],
+  resourceMetadataUrl: getOAuthProtectedResourceMetadataUrl(mcpServerUrl),
+});
+
+// Export for logging on startup
+export function getOAuthMetadataUrl(): string {
+  return getOAuthProtectedResourceMetadataUrl(mcpServerUrl).toString();
+}
+
+// Validate OAuth configuration and fetch OIDC discovery document at startup
+export async function validateOAuthConfig(): Promise<void> {
+  console.log(`[auth] Validating OAuth configuration for issuer: ${normalizedIssuerUrl}`);
+
+  const wellKnownUrl = `${normalizedIssuerUrl}/.well-known/openid-configuration`;
+
+  // Fetch the OIDC discovery document to get the correct endpoints
+  let discovery: OIDCDiscoveryDocument;
+  try {
+    const response = await fetch(wellKnownUrl, {
+      method: 'GET',
+      signal: AbortSignal.timeout(5000),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    discovery = (await response.json()) as OIDCDiscoveryDocument;
+    console.log('[auth] Successfully fetched OIDC discovery document');
+
+    // Build OAuth metadata from the discovery document
+    oauthMetadata = {
+      issuer: discovery.issuer,
+      authorization_endpoint: discovery.authorization_endpoint,
+      token_endpoint: discovery.token_endpoint,
+      response_types_supported: discovery.response_types_supported || ['code'],
+    };
+
+    console.log(`[auth] Authorization endpoint: ${discovery.authorization_endpoint}`);
+    console.log(`[auth] Token endpoint: ${discovery.token_endpoint}`);
+  } catch (e) {
+    const error = e instanceof Error ? e : new Error(String(e));
+    const errorMessage = [
+      'Failed to fetch OIDC discovery document',
+      `  Discovery URL: ${wellKnownUrl}`,
+      `  Error: ${error.message}`,
+      '',
+      'Please ensure:',
+      '  1. The OAUTH_ISSUER_URL environment variable is correct',
+      '  2. The OAuth server is running and accessible',
+      '  3. The OAuth server supports OIDC discovery (.well-known/openid-configuration)',
+      '  4. Network/firewall settings allow the connection',
+    ].join('\n');
+
+    throw new Error(errorMessage);
+  }
+
+  // Create JWKS from the discovery document's jwks_uri
+  const jwksUri = discovery.jwks_uri;
+  console.log(`[auth] JWKS URI: ${jwksUri}`);
+  JWKS = createRemoteJWKSet(new URL(jwksUri));
+
+  // Verify the JWKS endpoint is accessible
+  try {
+    const jwksResponse = await fetch(jwksUri, {
+      method: 'GET',
+      signal: AbortSignal.timeout(5000),
+    });
+
+    if (!jwksResponse.ok) {
+      throw new Error(`HTTP ${jwksResponse.status}: ${jwksResponse.statusText}`);
+    }
+    console.log('[auth] JWKS endpoint is accessible');
+  } catch (e) {
+    const error = e instanceof Error ? e : new Error(String(e));
+    const errorMessage = [
+      'Failed to fetch JWKS from OAuth server',
+      `  JWKS URI: ${jwksUri}`,
+      `  Error: ${error.message}`,
+      '',
+      'Please ensure the OAuth server is properly configured.',
+    ].join('\n');
+
+    throw new Error(errorMessage);
+  }
+
+  console.log('[auth] OAuth configuration validated successfully');
+}
