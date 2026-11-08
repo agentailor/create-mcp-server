@@ -136,6 +136,17 @@ describe('getAgentsMdTemplate', () => {
       expect(template).toContain('Commit `.agents/`');
     });
 
+    // With --no-skills there is no .agents/ to point at; send the reader upstream.
+    it('should link upstream and give the install command when the skill is absent', () => {
+      for (const options of [sdkHttp, sdkStdio]) {
+        const template = getAgentsMdTemplate(projectName, { ...options, withSkills: false });
+        expect(template).not.toContain('.agents/');
+        expect(template).not.toContain('npx skills update');
+        expect(template).toContain('https://github.com/agentailor/skills/tree/main/tool-design');
+        expect(template).toContain('npx skills add agentailor/skills --skill tool-design');
+      }
+    });
+
     // The copy is vendored, so updating is the user's choice, not automatic.
     it("should frame the update as the reader's choice", () => {
       const template = getAgentsMdTemplate(projectName, sdkHttp);
