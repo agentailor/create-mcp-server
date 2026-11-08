@@ -1,0 +1,41 @@
+# Local Keycloak for this example. Dev mode only: in-memory storage, HTTP,
+# admin/admin. The realm in ./keycloak/mcp-realm-realm.json is imported on every start,
+# so `docker compose down` resets everything to the committed state.
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.4.7
+    command: ["start-dev", "--import-realm"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      KC_HEALTH_ENABLED: "true"
+    ports:
+      # Bound to loopback only. Change KEYCLOAK_PORT if 8080 is taken, and update
+      # OAUTH_ISSUER_URL in .env to match.
+      - "127.0.0.1:${KEYCLOAK_PORT:-8080}:8080"
+    volumes:
+      - ./keycloak/mcp-realm-realm.json:/opt/keycloak/data/import/mcp-realm-realm.json:ro
+    healthcheck:
+      # The image ships without curl, so probe the management port with bash.
+      test:
+        [
+          "CMD-SHELL",
+          "exec 3<>/dev/tcp/127.0.0.1/9000 && printf 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && grep -q UP <&3",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 10s
+    networks: [mcp]
+
+networks:
+  # A fixed subnet makes the gateway address predictable. Requests from your
+  # machine reach Keycloak from that gateway, not from localhost, so the realm's
+  # "Trusted Hosts" registration policy trusts 172.29.248.1. Without it, clients
+  # that register themselves (Inspector, mcp-oauth-client) get a 403.
+  # If this subnet collides with one of yours, change both places.
+  mcp:
+    ipam:
+      config:
+        - subnet: 172.29.248.0/24
+          gateway: 172.29.248.1

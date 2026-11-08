@@ -1,0 +1,61 @@
+name: Examples
+
+# Runs each example end to end. Template changes trigger it too, so a drifting
+# example shows up on the PR that caused the drift.
+on:
+  pull_request:
+    branches: [main]
+    paths: ['examples/**', 'src/templates/**', '.github/workflows/examples.yml']
+  push:
+    branches: [main]
+    paths: ['examples/**', 'src/templates/**', '.github/workflows/examples.yml']
+
+jobs:
+  notes-oauth-keycloak:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: examples/notes-oauth-keycloak
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'npm'
+          cache-dependency-path: examples/notes-oauth-keycloak/package-lock.json
+
+      - name: Start Keycloak
+        run: docker compose up -d --wait
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Start the server
+        run: |
+          cp .env.example .env
+          nohup npm start > server.log 2>&1 &
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:3000/health && exit 0
+            sleep 1
+          done
+          cat server.log
+          exit 1
+
+      - name: Smoke test
+        run: npm run smoke
+
+      - name: Logs on failure
+        if: failure()
+        run: |
+          cat server.log || true
+          docker compose logs keycloak

@@ -1,0 +1,37 @@
+{
+  "name": "notes-oauth-keycloak",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc && node dist/index.js",
+    "start": "node dist/index.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "inspect": "mcp-inspector http://localhost:3000/mcp",
+    "token": "node scripts/get-token.mjs",
+    "smoke": "node scripts/smoke.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/server": "^2.3.0",
+    "@modelcontextprotocol/express": "^2.0.2",
+    "@modelcontextprotocol/node": "^2.1.1",
+    "express": "^5.2.1",
+    "hono": "^4.13.13",
+    "zod": "^4.6.5",
+    "dotenv": "^18.0.5",
+    "jose": "^6.2.12"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "typescript": "^7.0.2",
+    "@modelcontextprotocol/inspector": "^2.9.0",
+    "@types/node": "^26.6.4",
+    "vitest": "^5.0.3",
+    "@modelcontextprotocol/client": "^2.3.0"
+  },
+  "engines": {
+    "node": ">=22.19.0"
+  }
+}
